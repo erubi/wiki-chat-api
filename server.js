@@ -15,15 +15,10 @@ function requestTime(headerName) {
 
 app.use(requestTime('Response-time'));
 
-// app.use(async function (ctx, next) {
-//   const res = await db.query('SELECT NOW()');
-//   console.log(res.rows[0]);
-//   await next();
-// });
-
 // response
-app.use(ctx => {
-  ctx.body = 'Hello Koa';
+app.use(async (ctx) => {
+  const result = await db.query('SELECT NOW()');
+  ctx.body = result.rows[0].now.toISOString()
 });
 
 app.listen(3000);

@@ -27,3 +27,4 @@ module.exports.query = (text, values) => {
   console.log('query:', text, values)
   return pool.query(text, values)
 };
+

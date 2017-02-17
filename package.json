@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "migrate": "db-migrate up"
   },
   "author": "",
   "license": "ISC",
@@ -18,7 +19,6 @@
     "pg": "^6.1.2"
   },
   "devDependencies": {
-    "db-migrate": "^0.10.0-beta.20",
     "nodemon": "^1.11.0"
   }
 }
