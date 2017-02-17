@@ -17,10 +17,4 @@ function requestTime(headerName) {
 app.use(requestTime('Response-time'));
 
 app.use(router.routes());
-// response
-// app.use(async (ctx) => {
-//   const result = await db.query('SELECT NOW()');
-//   ctx.body = result.rows[0].now.toISOString();
-// });
-
 app.listen(3000);

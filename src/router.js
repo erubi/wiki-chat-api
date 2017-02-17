@@ -13,7 +13,18 @@ module.exports = (db) => {
     const { username, password, email } = ctx.request.body;
     if (!username || !password || !email) {
       ctx.status = 400;
+      return;
     }
+
+    const queryText = `INSERT INTO users (username, email, password) VALUES
+    ($1, $2, crypt('${password}', gen_salt('bf', 8))) RETURNING id`;
+
+    try {
+      await db.query(queryText, [username, email]);
+    } catch (err) {
+      console.error('POST /users err: ', err);
+    }
+    // const userId = result.rows[0].id;
   });
 
   return router;
