@@ -1,5 +1,3 @@
-'use strict';
-
 // http://babeljs.io/docs/setup/#babel_register
 
 require('babel-register')({

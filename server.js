@@ -1,4 +1,6 @@
 const Koa = require('koa');
+const db = require('./db');
+
 const app = new Koa();
 
 function requestTime(headerName) {
@@ -13,9 +15,14 @@ function requestTime(headerName) {
 
 app.use(requestTime('Response-time'));
 
+// app.use(async function (ctx, next) {
+//   const res = await db.query('SELECT NOW()');
+//   console.log(res.rows[0]);
+//   await next();
+// });
+
 // response
 app.use(ctx => {
-  // console.log(ctx);
   ctx.body = 'Hello Koa';
 });
 
