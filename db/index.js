@@ -1,9 +1,9 @@
 const pg = require('pg');
 
 const config = {
-  user: 'wikichat', //env var: PGUSER
-  database: 'wikichat', //env var: PGDATABASE
-  host: 'localhost', // Server hosting the postgres database
+  user: process.env.PG_USER, // env var: PGUSER
+  database: process.env.PG_DB, // env var: PGDATABASE
+  host: process.env.PG_HOST, // Server hosting the postgres database
   max: 10, // max number of clients in the pool
   idleTimeoutMillis: 30000, // how long a client is allowed to remain idle before being closed
 };
