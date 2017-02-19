@@ -1,5 +1,5 @@
 CREATE TABLE chats (
-  id integer REFERENCES entities NOT NULL,
+  id integer REFERENCES entities ON DELETE CASCADE NOT NULL,
   title varchar(200) UNIQUE NOT NULL,
   chat_type varchar(100) NOT NULL DEFAULT 'default'
 );
