@@ -1,5 +1,6 @@
 const Router = require('koa-router');
 const koaBody = require('koa-body')();
+const _ = require('lodash');
 
 const router = new Router();
 
@@ -19,12 +20,43 @@ module.exports = (db) => {
     const queryText = `INSERT INTO users (username, email, password) VALUES
     ($1, $2, crypt('${password}', gen_salt('bf', 8))) RETURNING id`;
 
+    let result;
     try {
-      await db.query(queryText, [username, email]);
+      result = await db.query(queryText, [username, email]);
+      ctx.body = _.pick(result.rows[0], ['id', 'email', 'username']);
     } catch (err) {
       console.error('POST /users err: ', err);
+      ctx.status = 400;
     }
-    // const userId = result.rows[0].id;
+  });
+
+  router.post('/login', koaBody, async (ctx) => {
+    const { username, password, email } = ctx.request.body;
+    if (!(username || email) || !password) {
+      ctx.status = 400;
+      ctx.body = 'Username or email and password required';
+      return;
+    }
+
+    let queryText;
+    if (email) {
+      queryText = `SELECT * FROM users WHERE email = lower('${email}') AND
+    password = crypt('${password}', password)`;
+    } else {
+      queryText = `SELECT * FROM users WHERE username= lower('${username}') AND
+    password = crypt('${password}', password)`;
+    }
+
+    let result;
+    try {
+      result = await db.query(queryText);
+      if (!(_.get(result, 'rows.length'))) throw new Error();
+      ctx.body = _.pick(result.rows[0], ['id', 'email', 'username']);
+    } catch (err) {
+      console.error('POST /users err: ', err);
+      ctx.status = 400;
+      ctx.body = 'Invalid username/email/password';
+    }
   });
 
   return router;
