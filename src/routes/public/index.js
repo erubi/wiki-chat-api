@@ -1,15 +1,11 @@
 const Router = require('koa-router');
 const koaBody = require('koa-body')();
+const jwt = require('jsonwebtoken');
 const _ = require('lodash');
 
 const router = new Router();
 
 module.exports = (db) => {
-  router.get('/', async (ctx) => {
-    const result = await db.query('SELECT NOW()');
-    ctx.body = result.rows[0].now.toISOString();
-  });
-
   router.post('/users', koaBody, async (ctx) => {
     const { username, password, email } = ctx.request.body;
     if (!username || !password || !email) {
@@ -51,7 +47,10 @@ module.exports = (db) => {
     try {
       result = await db.query(queryText);
       if (!(_.get(result, 'rows.length'))) throw new Error();
-      ctx.body = _.pick(result.rows[0], ['id', 'email', 'username']);
+      ctx.body = {
+        token: jwt.sign({ role: 'admin' }, process.env.JWT_SECRET),
+        message: 'Successfully logged in',
+      };
     } catch (err) {
       console.error('POST /users err: ', err);
       ctx.status = 400;
@@ -61,3 +60,4 @@ module.exports = (db) => {
 
   return router;
 };
+
