@@ -1,6 +1,5 @@
 CREATE TABLE news_items (
-  id serial PRIMARY KEY,
-  entity_id integer REFERENCES entities NOT NULL,
+  id integer UNIQUE REFERENCES entities ON DELETE CASCADE NOT NULL,
   user_id integer REFERENCES users,
   url varchar(100) NOT NULL,
   header text NOT NULL,
@@ -11,5 +10,3 @@ CREATE TABLE news_items (
 );
 
 CREATE INDEX news_items_user_id_index ON news_items (user_id);
-CREATE INDEX news_items_entity_id_index ON news_items (entity_id);
-
