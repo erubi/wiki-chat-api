@@ -1,6 +1,7 @@
 CREATE TABLE news_items (
   id integer UNIQUE REFERENCES entities ON DELETE CASCADE NOT NULL,
   user_id integer REFERENCES users,
+  news_source_id integer REFERENCES news_sources (id),
   url varchar(100) NOT NULL,
   header text NOT NULL,
   body text,
