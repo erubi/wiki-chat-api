@@ -1,5 +1,6 @@
 const Koa = require('koa');
 const jwt = require('koa-jwt');
+const koaBody = require('koa-body');
 const db = require('./db');
 const requestTime = require('./src/middlewares/requestTime');
 const publicRouter = require('./src/routes/public')(db);
@@ -19,6 +20,8 @@ app.use((ctx, next) => {
     }
   });
 });
+
+app.use(koaBody());
 
 app.use(publicRouter.routes());
 

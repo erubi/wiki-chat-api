@@ -14,6 +14,7 @@
     "babel-plugin-transform-async-to-generator": "^6.22.0",
     "babel-register": "^6.23.0",
     "dotenv": "^4.0.0",
+    "graphql-server-koa": "^0.6.0",
     "jsonwebtoken": "^7.3.0",
     "koa": "^2.0.1",
     "koa-body": "^2.0.0",
