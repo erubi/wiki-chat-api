@@ -75,7 +75,11 @@ const rootResolvers = {
   }
 };
 
-router.post('/graphql', graphqlKoa({ schema: rootSchema }));
+// TODO: expose logged in user here via ctx (should be added via jwt earlier)
+router.post('/graphql', graphqlKoa(ctx) => ({
+  schema: rootSchema,
+  context: { user: ctx.currentUser }
+}));
 
 module.exports = (db) => {
   return router;
