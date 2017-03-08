@@ -34,7 +34,7 @@ module.exports = (db) => {
     ctx.body = result.rows;
   });
 
-  router.post('/news', async (ctx) => {
+  router.post('/news_item', async (ctx) => {
     const { url, header, body, news_source_id } = ctx.request.body;
     if (!url || !header || !body) {
       ctx.status = 400;
@@ -60,25 +60,19 @@ module.exports = (db) => {
     ctx.body = result.rows[0];
   });
 
-  router.post('/news_item/:id/up_vote', async(ctx) => {
+  router.post('/entity/vote', async (ctx) => {
     // upvote existing news_item if exists
     // else wise create news_item with upvote
     // send down news item id, vote counts to update user client
-    // let queryText;
-    // queryText = 'UPDATE entities e SET up_votes = up_votes+1 WHERE e.id = $1';
-    // const result = await db.query(queryText, ctx.params.id);
-    // ctx.body = result.rows;
-  });
+    const { entity_id, vote } = ctx.request.body;
+    if (!entity_id || !vote) {
+      ctx.status = 400;
+      return;
+    }
 
-  router.post('/news_item/:id/down_vote', async(ctx) => {
-    // upvote existing news_item if exists
-    // else wise create news_item with upvote
-    // send down news item id, vote counts to update user client
-  });
-
-  router.post('/news/:id/cancel_vote', async(ctx) => {
-    // upvote existing news_item with cancelled vote
-    // send down news item id, vote counts to update user client
+    const queryText = 'INSERT INTO entity_votes (entity_id, user_id, vote) VALUES ($1, $2, $3) RETURNING vote';
+    const result = await db.query(queryText, [entity_id, ctx.state.user.id, vote]);
+    ctx.body = result.rows[0];
   });
 
   return router;
