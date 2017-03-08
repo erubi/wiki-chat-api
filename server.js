@@ -1,6 +1,7 @@
 const Koa = require('koa');
 const jwt = require('koa-jwt');
 const koaBody = require('koa-body');
+const _ = require('lodash');
 const db = require('./db');
 const requestTime = require('./src/middlewares/requestTime');
 const publicRouter = require('./src/routes/public')(db);
@@ -25,7 +26,18 @@ app.use(koaBody());
 
 app.use(publicRouter.routes());
 
-app.use(jwt({ secret: process.env.JWT_SECRET }));
+app.use(jwt({
+  secret: process.env.JWT_SECRET,
+  // TODO: handle token expiration?
+  isRevoked: (ctx, user) => {
+    if (!user.id) return Promise.resolve(true);
+    return db.query('SELECT * FROM USERS u WHERE u.id = $1', [user.id])
+    .then((res) => {
+      if (!(_.get(res, 'rows.length'))) return Promise.resolve(true);
+      return Promise.resolve(false);
+    });
+  },
+}));
 
 app.use(appRouter.routes());
 
