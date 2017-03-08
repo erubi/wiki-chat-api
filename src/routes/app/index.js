@@ -9,16 +9,29 @@ module.exports = (db) => {
     ctx.body = result.rows[0].now.toISOString();
   });
 
+  router.redirect('/news', '/news/recent');
+  // query for news by type, default to recent
+  // send down news items from newsapi.org combined with news items in db
+  // should be unique on url
   router.get('/news/:type', async (ctx) => {
-    // query for news by type, default to recent
-    // send down news items from newsapi.org combined with news items in db
-    // should be unique on url
+    let queryText;
+    switch (ctx.params.type) {
+    case ('recent'):
+    default:
+      queryText = 'SELECT * FROM news_items n JOIN entities e ON n.id = e.id ORDER BY e.created_at';
+    }
+    const result = await db.query(queryText);
+    ctx.body = result.rows;
   });
 
+  // query for news by type, default to recent
+  // send down news items from newsapi.org combined with news items in db
+  // should be unique on url
   router.get('/news_source/:id', async (ctx) => {
-    // query for news by type, default to recent
-    // send down news items from newsapi.org combined with news items in db
-    // should be unique on url
+    let queryText;
+    queryText = 'SELECT * FROM news_sources n WHERE n.id = $1';
+    const result = await db.query(queryText, ctx.params.id);
+    ctx.body = result.rows;
   });
 
   router.post('/news', async (ctx) => {
@@ -47,13 +60,17 @@ module.exports = (db) => {
     ctx.body = result.rows[0];
   });
 
-  router.post('/news/:id/up_vote', async(ctx) => {
+  router.post('/news_item/:id/up_vote', async(ctx) => {
     // upvote existing news_item if exists
     // else wise create news_item with upvote
     // send down news item id, vote counts to update user client
+    // let queryText;
+    // queryText = 'UPDATE entities e SET up_votes = up_votes+1 WHERE e.id = $1';
+    // const result = await db.query(queryText, ctx.params.id);
+    // ctx.body = result.rows;
   });
 
-  router.post('/news/:id/down_vote', async(ctx) => {
+  router.post('/news_item/:id/down_vote', async(ctx) => {
     // upvote existing news_item if exists
     // else wise create news_item with upvote
     // send down news item id, vote counts to update user client
