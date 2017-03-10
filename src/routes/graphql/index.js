@@ -1,87 +1,52 @@
 const Router = require('koa-router');
 const graphqlKoa = require('graphql-server-koa').graphqlKoa;
 const graphqlTools = require('graphql-tools');
-
-const router = new Router();
-
-// based on:
-// https://github.com/apollographql/GitHunt-API/blob/master/api/schema.js
-
-const rootSchema = [`
-  # Entity interface
-  interface Node {
-    id: ID!
-  }
-
-  type User implements Node {
-    id: ID!
-    name: String
-    email: String
-  }
-
-  type Entity implements Node {
-    id: ID!,
-  }
-
-  enum FeedType {
-     # Sort by a combination of freshness and score, using Reddit's algorithm
-    HOT
-    # Newest entries first
-    NEW
-    # Highest score entries first
-    TOP
-  }
-
-  type Query {
-    currentUser: User
-
-    user(id: ID!): User
-
-    entity(id: ID!): Entity
-
-    feed(type: FeedType!, offset: Int, limit: Int): [Entity]
-  }
-
-  enum VoteType {
-    UP
-    DOWN
-    CANCEL
-  }
-
-  type Mutation {
-    vote (entityId: Int!, type: VoteType!): Entity
-  }
-
-  schema {
-    query: Query,
-    mutation: Mutation
-  }
-`];
-
-const rootResolvers = {
-  Query: {
-    // feed(root, { type, offset, limit }, context) {
-    //   // Ensure API consumer can only fetch 10 items at most
-    //   const protectedLimit = (limit < 1 || limit > 10) ? 10 : limit;
-
-    //   return context.Entries.getForFeed(type, offset, protectedLimit);
-    // },
-    // entry(root, { repoFullName }, context) {
-    //   return context.Entries.getByRepoFullName(repoFullName);
-    // },
-    currentUser(root, args, context) {
-      return context.user || null;
-    },
-  }
-};
-
-// TODO: expose logged in user here via ctx (should be added via jwt earlier)
-router.post('/graphql', graphqlKoa(ctx) => ({
-  schema: rootSchema,
-  context: { user: ctx.currentUser }
-}));
+const rootSchema = require('./schema');
 
 module.exports = (db) => {
+  const router = new Router();
+
+  const rootResolvers = {
+    // Resolver functions signature
+    // fieldName(obj, args, context, info) { result }
+    Query: {
+      feed: async (root, { type, offset = 0, limit = 10 }) => {
+        const protectedLimit = (limit < 1 || limit > 10) ? 10 : limit;
+        const queryText = 'SELECT * FROM news_items n JOIN entities e ON n.id = e.id ORDER BY e.created_at LIMIT $1 OFFSET $2';
+        const res = await db.query(queryText, [protectedLimit, offset]);
+        return res.rows;
+      },
+      currentUser(root, args, context) {
+        return db.query('SELECT USER u WHERE u.id = $1', [context.user.id]);
+      },
+    },
+    // NewsItem(root, args, context) {
+    //   debugger;
+    // },
+  };
+
+  const schema = graphqlTools.makeExecutableSchema({
+    typeDefs: rootSchema,
+    resolvers: rootResolvers,
+    logger: { log: e => console.log('resolver error', e) },
+    allowUndefinedInResolve: false,
+  });
+
+  router.post('/graphql', graphqlKoa((ctx) => {
+    return {
+      schema,
+      context: { user: ctx.user },
+      debug: true,
+      formatError: (e) => {
+        console.log('graphql endpoint error: ', e);
+      },
+    };
+  }));
+
   return router;
 };
+
+// module.exports = () => {
+//   return router;
+// };
 

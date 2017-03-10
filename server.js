@@ -6,6 +6,7 @@ const db = require('./db');
 const requestTime = require('./src/middlewares/requestTime');
 const publicRouter = require('./src/routes/public')(db);
 const appRouter = require('./src/routes/app')(db);
+const graphqlRouter = require('./src/routes/graphql')(db);
 
 const app = new Koa();
 
@@ -13,6 +14,7 @@ app.use(requestTime('Response-time'));
 
 app.use((ctx, next) => {
   ctx.set('Access-Control-Allow-Origin', 'http://localhost:3001');
+  ctx.set('Access-Control-Allow-Headers', 'Content-Type');
   return next().catch((err) => {
     if (err.status === 401) {
       ctx.status = 401;
@@ -26,6 +28,8 @@ app.use((ctx, next) => {
 app.use(koaBody());
 
 app.use(publicRouter.routes());
+app.use(graphqlRouter.routes());
+app.use(graphqlRouter.allowedMethods());
 
 app.use(jwt({
   secret: process.env.JWT_SECRET,
@@ -38,7 +42,7 @@ app.use(jwt({
       return Promise.resolve(false);
     });
   },
-}));
+}).unless({ path: [/^\/graphql/] }));
 
 app.use(appRouter.routes());
 
