@@ -12,6 +12,7 @@ const app = new Koa();
 app.use(requestTime('Response-time'));
 
 app.use((ctx, next) => {
+  ctx.set('Access-Control-Allow-Origin', 'http://localhost:3001');
   return next().catch((err) => {
     if (err.status === 401) {
       ctx.status = 401;
