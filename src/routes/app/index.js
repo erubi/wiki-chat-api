@@ -4,37 +4,12 @@ const Router = require('koa-router');
 const router = new Router();
 
 module.exports = (db) => {
-  router.get('/', async (ctx) => {
-    const result = await db.query('SELECT NOW()');
-    ctx.body = result.rows[0].now.toISOString();
-  });
+  // router.get('/', async (ctx) => {
+  //   const result = await db.query('SELECT NOW()');
+  //   ctx.body = result.rows[0].now.toISOString();
+  // });
 
-  router.redirect('/news', '/news/recent');
-  // query for news by type, default to recent
-  // send down news items from newsapi.org combined with news items in db
-  // should be unique on url
-  router.get('/news/:type', async (ctx) => {
-    let queryText;
-    switch (ctx.params.type) {
-    case ('recent'):
-    default:
-      queryText = 'SELECT * FROM news_items n JOIN entities e ON n.id = e.id ORDER BY e.created_at';
-    }
-    const result = await db.query(queryText);
-    ctx.body = result.rows;
-  });
-
-  // query for news by type, default to recent
-  // send down news items from newsapi.org combined with news items in db
-  // should be unique on url
-  router.get('/news_source/:id', async (ctx) => {
-    let queryText;
-    queryText = 'SELECT * FROM news_sources n WHERE n.id = $1';
-    const result = await db.query(queryText, ctx.params.id);
-    ctx.body = result.rows;
-  });
-
-  router.post('/news_item', async (ctx) => {
+  router.post('/news', async (ctx) => {
     const { url, header, body, news_source_id } = ctx.request.body;
     if (!url || !header || !body) {
       ctx.status = 400;

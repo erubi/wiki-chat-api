@@ -61,6 +61,37 @@ module.exports = (db) => {
     }
   });
 
+  router.redirect('/news', '/news/recent');
+  // query for news by type, default to recent
+  // send down news items from newsapi.org combined with news items in db
+  // should be unique on url
+  router.get('/news/:type', async (ctx) => {
+    const { limit = 10, type } = ctx.params
+    let queryText;
+    // let freshNews = [];
+
+    switch (type) {
+    case ('hot'):
+      queryText = 'SELECT * FROM news_items n JOIN entities e ON n.id = e.id ORDER BY e.created_at';
+      break;
+    case ('recent'):
+    default:
+      queryText = 'SELECT * FROM news_items n JOIN entities e ON n.id = e.id ORDER BY e.created_at';
+    }
+    const result = await db.query(queryText);
+    // if (result.rows.length < limit) {
+    //   freshNews = newsSources.getFresh(result.rows.length - 10)
+    // }
+    ctx.body = result.rows;
+  });
+
+  // router.get('/news_source/:id', async (ctx) => {
+  //   let queryText;
+  //   queryText = 'SELECT * FROM news_sources n WHERE n.id = $1';
+  //   const result = await db.query(queryText, ctx.params.id);
+  //   ctx.body = result.rows;
+  // });
+
   return router;
 };
 
