@@ -57,6 +57,8 @@ const rootSchema = [`
   }
 
   type Mutation {
+    submitNewsItem (url: String!, header: String!, body: String!): NewsItem
+
     vote (entityId: Int!, type: VoteType!): Entity
   }
 
