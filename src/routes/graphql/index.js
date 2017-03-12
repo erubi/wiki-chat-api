@@ -16,8 +16,9 @@ module.exports = (db) => {
         const res = await db.query(queryText, [protectedLimit, offset]);
         return res.rows;
       },
-      currentUser(root, args, context) {
-        return db.query('SELECT USER u WHERE u.id = $1', [context.user.id]);
+      currentUser: async (root, args, context) => {
+        const res = await db.query('SELECT * FROM USERS u WHERE u.id = $1', [context.user.id]);
+        return res.rows[0];
       },
     },
 
@@ -48,7 +49,7 @@ module.exports = (db) => {
   router.post('/graphql', graphqlKoa((ctx) => {
     return {
       schema,
-      context: { user: ctx.user },
+      context: { user: ctx.state.user },
       debug: true,
       formatError: (e) => {
         console.log('graphql endpoint error: ', e);
@@ -58,8 +59,4 @@ module.exports = (db) => {
 
   return router;
 };
-
-// module.exports = () => {
-//   return router;
-// };
 

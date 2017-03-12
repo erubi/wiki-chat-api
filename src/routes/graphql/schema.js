@@ -15,6 +15,7 @@ const rootSchema = [`
     id: ID!
     name: String
     email: String
+    username: String
   }
 
   type NewsSource implements Node {

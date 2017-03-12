@@ -29,8 +29,6 @@ app.use(koaBody());
 
 app.use(publicRouter.routes());
 app.use(publicRouter.allowedMethods());
-app.use(graphqlRouter.routes());
-app.use(graphqlRouter.allowedMethods());
 
 app.use(jwt({
   secret: process.env.JWT_SECRET,
@@ -43,7 +41,10 @@ app.use(jwt({
       return Promise.resolve(false);
     });
   },
-}).unless({ path: [/^\/graphql/] }));
+}));
+
+app.use(graphqlRouter.routes());
+app.use(graphqlRouter.allowedMethods());
 
 app.use(appRouter.routes());
 
