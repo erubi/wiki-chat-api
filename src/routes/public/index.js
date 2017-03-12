@@ -30,21 +30,16 @@ module.exports = (db) => {
   });
 
   router.post('/login', async (ctx) => {
-    const { username, password, email } = ctx.request.body;
-    if (!(username || email) || !password) {
+    const { userLogin, password } = ctx.request.body;
+    if (!userLogin || !password) {
       ctx.status = 400;
       ctx.body = 'Username or email and password required';
       return;
     }
 
-    let queryText;
-    if (email) {
-      queryText = `SELECT * FROM users WHERE email = lower('${email}') AND
-    password = crypt('${password}', password)`;
-    } else {
-      queryText = `SELECT * FROM users WHERE username= lower('${username}') AND
-    password = crypt('${password}', password)`;
-    }
+    const queryText = `SELECT * FROM users
+    WHERE (email = lower('${userLogin}') OR username = lower('${userLogin}'))
+    AND password = crypt('${password}', password)`;
 
     let result;
     try {
@@ -52,38 +47,38 @@ module.exports = (db) => {
       if (!(_.get(result, 'rows.length'))) throw new Error();
       ctx.body = {
         token: jwt.sign({ id: result.rows[0].id }, process.env.JWT_SECRET),
-        message: 'Successfully logged in',
+        user: result.rows[0],
       };
     } catch (err) {
       console.error('POST /users err: ', err);
       ctx.status = 400;
-      ctx.body = 'Invalid username/email/password';
+      ctx.body = { err: { message: 'Invalid email/username or password' } };
     }
   });
 
-  router.redirect('/news', '/news/recent');
-  // query for news by type, default to recent
-  // send down news items from newsapi.org combined with news items in db
-  // should be unique on url
-  router.get('/news/:type', async (ctx) => {
-    const { limit = 10, type } = ctx.params
-    let queryText;
-    // let freshNews = [];
+  // router.redirect('/news', '/news/recent');
+  // // query for news by type, default to recent
+  // // send down news items from newsapi.org combined with news items in db
+  // // should be unique on url
+  // router.get('/news/:type', async (ctx) => {
+  //   const { limit = 10, type } = ctx.params
+  //   let queryText;
+  //   // let freshNews = [];
 
-    switch (type) {
-    case ('hot'):
-      queryText = 'SELECT * FROM news_items n JOIN entities e ON n.id = e.id ORDER BY e.created_at';
-      break;
-    case ('recent'):
-    default:
-      queryText = 'SELECT * FROM news_items n JOIN entities e ON n.id = e.id ORDER BY e.created_at';
-    }
-    const result = await db.query(queryText);
-    // if (result.rows.length < limit) {
-    //   freshNews = newsSources.getFresh(result.rows.length - 10)
-    // }
-    ctx.body = result.rows;
-  });
+  //   switch (type) {
+  //   case ('hot'):
+  //     queryText = 'SELECT * FROM news_items n JOIN entities e ON n.id = e.id ORDER BY e.created_at';
+  //     break;
+  //   case ('recent'):
+  //   default:
+  //     queryText = 'SELECT * FROM news_items n JOIN entities e ON n.id = e.id ORDER BY e.created_at';
+  //   }
+  //   const result = await db.query(queryText);
+  //   // if (result.rows.length < limit) {
+  //   //   freshNews = newsSources.getFresh(result.rows.length - 10)
+  //   // }
+  //   ctx.body = result.rows;
+  // });
 
   // router.get('/news_source/:id', async (ctx) => {
   //   let queryText;

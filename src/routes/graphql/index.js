@@ -22,13 +22,12 @@ module.exports = (db) => {
     },
 
     Mutation: {
-      submitNewsItem: async (root, { url, header, body }) => {
-        if (!url || !header || !body) return null;
+      submitNewsItem: async (root, { url }) => {
+        if (!url) return null;
         const entity = await db.query('INSERT INTO entities DEFAULT VALUES RETURNING id');
         const entityId = entity.rows[0].id;
-        const queryText = `INSERT INTO news_items (id, url, header, body) VALUES
-      ($1, $2, $3, $4) RETURNING *`;
-        const res = await db.query(queryText, [entityId, url, header, body]);
+        const queryText = 'INSERT INTO news_items (id, url) VALUES ($1, $2) RETURNING *';
+        const res = await db.query(queryText, [entityId, url]);
 
         return res.rows[0];
       },

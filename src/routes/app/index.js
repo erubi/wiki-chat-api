@@ -9,31 +9,31 @@ module.exports = (db) => {
   //   ctx.body = result.rows[0].now.toISOString();
   // });
 
-  router.post('/news', async (ctx) => {
-    const { url, header, body, news_source_id } = ctx.request.body;
-    if (!url || !header || !body) {
-      ctx.status = 400;
-      ctx.body = 'Missing required fields';
-      return;
-    }
-    let queryText;
-    let result;
+  // router.post('/news', async (ctx) => {
+  //   const { url, header, body, news_source_id } = ctx.request.body;
+  //   if (!url || !header || !body) {
+  //     ctx.status = 400;
+  //     ctx.body = 'Missing required fields';
+  //     return;
+  //   }
+  //   let queryText;
+  //   let result;
 
-    const entity = await db.query('INSERT INTO entities DEFAULT VALUES RETURNING id');
-    const entityId = entity.rows[0].id;
+  //   const entity = await db.query('INSERT INTO entities DEFAULT VALUES RETURNING id');
+  //   const entityId = entity.rows[0].id;
 
-    if (news_source_id) {
-      queryText = `INSERT INTO news_items (id, news_source_id, url, header, body) VALUES
-    ($1, $2, $3, $4, $5) RETURNING *`;
-      result = await db.query(queryText, [entityId, news_source_id, url, header, body]);
-    } else {
-      queryText = `INSERT INTO news_items (id, url, header, body) VALUES
-    ($1, $2, $3, $4) RETURNING *`;
-      result = await db.query(queryText, [entityId, url, header, body]);
-    }
+  //   if (news_source_id) {
+  //     queryText = `INSERT INTO news_items (id, news_source_id, url, header, body) VALUES
+  //   ($1, $2, $3, $4, $5) RETURNING *`;
+  //     result = await db.query(queryText, [entityId, news_source_id, url, header, body]);
+  //   } else {
+  //     queryText = `INSERT INTO news_items (id, url, header, body) VALUES
+  //   ($1, $2, $3, $4) RETURNING *`;
+  //     result = await db.query(queryText, [entityId, url, header, body]);
+  //   }
 
-    ctx.body = result.rows[0];
-  });
+  //   ctx.body = result.rows[0];
+  // });
 
   router.post('/entity/vote', async (ctx) => {
     // upvote existing news_item if exists

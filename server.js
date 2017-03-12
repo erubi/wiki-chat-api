@@ -2,6 +2,7 @@ const Koa = require('koa');
 const jwt = require('koa-jwt');
 const koaBody = require('koa-body');
 const _ = require('lodash');
+const cors = require('kcors');
 const db = require('./db');
 const requestTime = require('./src/middlewares/requestTime');
 const publicRouter = require('./src/routes/public')(db);
@@ -11,10 +12,9 @@ const graphqlRouter = require('./src/routes/graphql')(db);
 const app = new Koa();
 
 app.use(requestTime('Response-time'));
+app.use(cors());
 
 app.use((ctx, next) => {
-  ctx.set('Access-Control-Allow-Origin', 'http://localhost:3001');
-  ctx.set('Access-Control-Allow-Headers', 'Content-Type');
   return next().catch((err) => {
     if (err.status === 401) {
       ctx.status = 401;
@@ -28,6 +28,7 @@ app.use((ctx, next) => {
 app.use(koaBody());
 
 app.use(publicRouter.routes());
+app.use(publicRouter.allowedMethods());
 app.use(graphqlRouter.routes());
 app.use(graphqlRouter.allowedMethods());
 

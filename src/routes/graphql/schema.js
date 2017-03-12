@@ -25,10 +25,8 @@ const rootSchema = [`
 
   type NewsItem implements Node {
     id: ID!
-    newsSource: NewsSource
     url: String!
-    header: String!
-    body: String
+    newsSource: NewsSource
   }
 
   enum FeedType {
@@ -57,7 +55,12 @@ const rootSchema = [`
   }
 
   type Mutation {
-    submitNewsItem (url: String!, header: String!, body: String!): NewsItem
+    submitNewsItem (
+      url: String!,
+      author: String,
+      publisher: String,
+      news_source_id: Int,
+    ): NewsItem
 
     vote (entityId: Int!, type: VoteType!): Entity
   }
