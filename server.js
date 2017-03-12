@@ -41,12 +41,11 @@ app.use(jwt({
       return Promise.resolve(false);
     });
   },
+  passthrough: true,
 }));
 
 app.use(graphqlRouter.routes());
 app.use(graphqlRouter.allowedMethods());
-
-app.use(appRouter.routes());
 
 app.listen(3000);
 

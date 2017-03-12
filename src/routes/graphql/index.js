@@ -17,14 +17,15 @@ module.exports = (db) => {
         return res.rows;
       },
       currentUser: async (root, args, context) => {
+        if (!context.user) return null;
         const res = await db.query('SELECT * FROM USERS u WHERE u.id = $1', [context.user.id]);
         return res.rows[0];
       },
     },
 
     Mutation: {
-      submitNewsItem: async (root, { url }) => {
-        if (!url) return null;
+      submitNewsItem: async (root, { url }, context) => {
+        if (!url || !context.user) return null;
         const entity = await db.query('INSERT INTO entities DEFAULT VALUES RETURNING id');
         const entityId = entity.rows[0].id;
         const queryText = 'INSERT INTO news_items (id, url) VALUES ($1, $2) RETURNING *';
