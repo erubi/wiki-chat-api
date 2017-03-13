@@ -5,8 +5,7 @@ const _ = require('lodash');
 const cors = require('kcors');
 const db = require('./db');
 const requestTime = require('./src/middlewares/requestTime');
-const publicRouter = require('./src/routes/public')(db);
-const appRouter = require('./src/routes/app')(db);
+const userRouter = require('./src/routes/user')(db);
 const graphqlRouter = require('./src/routes/graphql')(db);
 
 const app = new Koa();
@@ -27,8 +26,8 @@ app.use((ctx, next) => {
 
 app.use(koaBody());
 
-app.use(publicRouter.routes());
-app.use(publicRouter.allowedMethods());
+app.use(userRouter.routes());
+app.use(userRouter.allowedMethods());
 
 app.use(jwt({
   secret: process.env.JWT_SECRET,

@@ -5,7 +5,7 @@ const _ = require('lodash');
 const router = new Router();
 
 module.exports = (db) => {
-  router.post('/users', async (ctx) => {
+  router.post('/signup', async (ctx) => {
     const { username, password, email } = ctx.request.body;
     if (!username || !password || !email) {
       ctx.status = 400;
