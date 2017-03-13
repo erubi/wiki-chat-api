@@ -2,11 +2,12 @@ CREATE TABLE news_items (
   id integer REFERENCES entities ON DELETE CASCADE PRIMARY KEY,
   user_id integer REFERENCES users,
   news_source_id integer REFERENCES news_sources (id),
-  url varchar(100) UNIQUE NOT NULL,
+  url varchar(250) UNIQUE NOT NULL,
+  title varchar(250) NOT NULL,
   author varchar(100),
   publisher varchar(100),
   published_at timestamp,
-  archive_url varchar(100) UNIQUE,
+  archive_url varchar(250) UNIQUE,
   archived_at timestamp
 );
 
