@@ -3,7 +3,10 @@ CREATE TABLE users (
   username varchar (25) UNIQUE NOT NULL,
   email varchar (100) UNIQUE NOT NULL,
   password text NOT NULL,
-  created_at timestamp DEFAULT now()
+  created_at timestamp DEFAULT now(),
+  CHECK (email != ''),
+  CHECK (username != ''),
+  CHECK (password != '')
 );
 
 CREATE UNIQUE INDEX users_username_index ON users (lower(username));

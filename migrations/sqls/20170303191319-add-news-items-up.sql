@@ -8,7 +8,9 @@ CREATE TABLE news_items (
   publisher varchar(100),
   published_at timestamp,
   archive_url varchar(250) UNIQUE,
-  archived_at timestamp
+  archived_at timestamp,
+  CHECK (title != ''),
+  CHECK (url != '')
 );
 
 CREATE INDEX news_items_user_id_index ON news_items (user_id);
