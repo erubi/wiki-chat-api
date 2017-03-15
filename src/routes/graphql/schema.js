@@ -27,6 +27,7 @@ const rootSchema = [`
   type NewsItem implements Node {
     id: ID!
     url: String!
+    title: String!
     newsSource: NewsSource
   }
 
@@ -58,9 +59,10 @@ const rootSchema = [`
   type Mutation {
     submitNewsItem (
       url: String!,
+      title: String!,
       author: String,
       publisher: String,
-      news_source_id: Int,
+      news_source_id: Int
     ): NewsItem
 
     vote (entityId: Int!, type: VoteType!): Entity

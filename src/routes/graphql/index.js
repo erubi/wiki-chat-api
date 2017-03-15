@@ -2,43 +2,10 @@ const Router = require('koa-router');
 const graphqlKoa = require('graphql-server-koa').graphqlKoa;
 const graphqlTools = require('graphql-tools');
 const rootSchema = require('./schema');
+const rootResolvers = require('./resolvers');
 
 module.exports = (db) => {
   const router = new Router();
-
-  const rootResolvers = {
-    // Resolver functions signature
-    // fieldName(obj, args, context, info) { result }
-    Query: {
-      feed: async (root, { type, offset = 0, limit = 10 }) => {
-        const protectedLimit = (limit < 1 || limit > 10) ? 10 : limit;
-        const queryText = 'SELECT * FROM news_items n JOIN entities e ON n.id = e.id ORDER BY e.created_at LIMIT $1 OFFSET $2';
-        const res = await db.query(queryText, [protectedLimit, offset]);
-        return res.rows;
-      },
-      currentUser: async (root, args, context) => {
-        if (!context.user) return null;
-        const res = await db.query('SELECT * FROM USERS u WHERE u.id = $1', [context.user.id]);
-        return res.rows[0];
-      },
-    },
-
-    Mutation: {
-      submitNewsItem: async (root, { url }, context) => {
-        if (!url || !context.user) return null;
-        const entity = await db.query('INSERT INTO entities DEFAULT VALUES RETURNING id');
-        const entityId = entity.rows[0].id;
-        const queryText = 'INSERT INTO news_items (id, url) VALUES ($1, $2) RETURNING *';
-        const res = await db.query(queryText, [entityId, url]);
-
-        return res.rows[0];
-      },
-    },
-
-    NewsItem(root, args, context) {
-      debugger;
-    },
-  };
 
   const schema = graphqlTools.makeExecutableSchema({
     typeDefs: rootSchema,
@@ -50,7 +17,7 @@ module.exports = (db) => {
   router.post('/graphql', graphqlKoa((ctx) => {
     return {
       schema,
-      context: { user: ctx.state.user },
+      context: { user: ctx.state.user, db },
       debug: true,
       formatError: (e) => {
         console.log('graphql endpoint error: ', e);
