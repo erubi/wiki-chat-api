@@ -1,13 +1,24 @@
 const Router = require('koa-router');
-// const fetch = require('../../lib/fetch');
+const fetch = require('../../lib/fetch');
+const cheerio = require('cheerio');
 
 const router = new Router();
 
+
 module.exports = (db) => {
-  // router.get('/', async (ctx) => {
-  //   const result = await db.query('SELECT NOW()');
-  //   ctx.body = result.rows[0].now.toISOString();
-  // });
+  router.get('/url_data', async (ctx) => {
+    const { url } = ctx.query;
+    if (!url) {
+      ctx.status = 400;
+      ctx.body = 'Missing required param - url';
+      return;
+    }
+    const res = await fetch.get(url);
+    const $ = cheerio.load(res);
+    const title = $('meta[property="og:title"]').attr('content') || $('title').text();
+
+    ctx.body = { metadata: { title } };
+  });
 
   // router.post('/news', async (ctx) => {
   //   const { url, header, body, news_source_id } = ctx.request.body;
@@ -35,20 +46,51 @@ module.exports = (db) => {
   //   ctx.body = result.rows[0];
   // });
 
-  router.post('/entity/vote', async (ctx) => {
-    // upvote existing news_item if exists
-    // else wise create news_item with upvote
-    // send down news item id, vote counts to update user client
-    const { entity_id, vote } = ctx.request.body;
-    if (!entity_id || !vote) {
-      ctx.status = 400;
-      return;
-    }
+  // router.redirect('/news', '/news/recent');
+  // // query for news by type, default to recent
+  // // send down news items from newsapi.org combined with news items in db
+  // // should be unique on url
+  // router.get('/news/:type', async (ctx) => {
+  //   const { limit = 10, type } = ctx.params
+  //   let queryText;
+  //   // let freshNews = [];
 
-    const queryText = 'INSERT INTO entity_votes (entity_id, user_id, vote) VALUES ($1, $2, $3) RETURNING vote';
-    const result = await db.query(queryText, [entity_id, ctx.state.user.id, vote]);
-    ctx.body = result.rows[0];
-  });
+  //   switch (type) {
+  //   case ('hot'):
+  //     queryText = 'SELECT * FROM news_items n JOIN entities e ON n.id = e.id ORDER BY e.created_at';
+  //     break;
+  //   case ('recent'):
+  //   default:
+  //     queryText = 'SELECT * FROM news_items n JOIN entities e ON n.id = e.id ORDER BY e.created_at';
+  //   }
+  //   const result = await db.query(queryText);
+  //   // if (result.rows.length < limit) {
+  //   //   freshNews = newsSources.getFresh(result.rows.length - 10)
+  //   // }
+  //   ctx.body = result.rows;
+  // });
+
+  // router.get('/news_source/:id', async (ctx) => {
+  //   let queryText;
+  //   queryText = 'SELECT * FROM news_sources n WHERE n.id = $1';
+  //   const result = await db.query(queryText, ctx.params.id);
+  //   ctx.body = result.rows;
+  // });
+
+  // router.post('/entity/vote', async (ctx) => {
+  //   // upvote existing news_item if exists
+  //   // else wise create news_item with upvote
+  //   // send down news item id, vote counts to update user client
+  //   const { entity_id, vote } = ctx.request.body;
+  //   if (!entity_id || !vote) {
+  //     ctx.status = 400;
+  //     return;
+  //   }
+
+  //   const queryText = 'INSERT INTO entity_votes (entity_id, user_id, vote) VALUES ($1, $2, $3) RETURNING vote';
+  //   const result = await db.query(queryText, [entity_id, ctx.state.user.id, vote]);
+  //   ctx.body = result.rows[0];
+  // });
 
   return router;
 };

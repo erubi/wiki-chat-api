@@ -6,6 +6,7 @@ const cors = require('kcors');
 const db = require('./db');
 const requestTime = require('./src/middlewares/requestTime');
 const userRouter = require('./src/routes/user')(db);
+const appRouter = require('./src/routes/app')(db);
 const graphqlRouter = require('./src/routes/graphql')(db);
 
 const app = new Koa();
@@ -45,6 +46,8 @@ app.use(jwt({
 
 app.use(graphqlRouter.routes());
 app.use(graphqlRouter.allowedMethods());
+app.use(appRouter.routes());
+app.use(appRouter.allowedMethods());
 
 app.listen(3000);
 

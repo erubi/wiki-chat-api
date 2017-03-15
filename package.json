@@ -13,7 +13,9 @@
   "dependencies": {
     "babel-plugin-transform-async-to-generator": "^6.22.0",
     "babel-register": "^6.24.0",
+    "cheerio": "^0.22.0",
     "dotenv": "^4.0.0",
+    "fetch-cookie": "^0.6.0",
     "graphql": "^0.9.1",
     "graphql-server-koa": "^0.6.0",
     "graphql-tools": "^0.10.1",
