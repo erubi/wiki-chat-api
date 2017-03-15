@@ -17,7 +17,7 @@ module.exports = {
 
   Mutation: {
     submitNewsItem: async (root, { url, title }, context) => {
-      if (!url || !context.user) return null;
+      if (!url || !title || !context.user) return null;
       const entity = await context.db.query('INSERT INTO entities DEFAULT VALUES RETURNING id');
       const entityId = entity.rows[0].id;
       const queryText = 'INSERT INTO news_items (id, url, title) VALUES ($1, $2, $3) RETURNING *';

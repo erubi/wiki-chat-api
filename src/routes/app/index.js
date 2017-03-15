@@ -13,7 +13,14 @@ module.exports = (db) => {
       ctx.body = 'Missing required param - url';
       return;
     }
-    const res = await fetch.get(url);
+    let res;
+    try {
+      res = await fetch.get(url);
+    } catch (e) {
+      ctx.status = 500;
+      ctx.body = 'Invalid url';
+      return;
+    }
     const $ = cheerio.load(res);
     const title = $('meta[property="og:title"]').attr('content') || $('title').text();
 
