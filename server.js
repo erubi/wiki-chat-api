@@ -11,6 +11,12 @@ const graphqlRouter = require('./src/routes/graphql')(db);
 
 const app = new Koa();
 
+function UnAuthError(message) {
+  this.message = message;
+  this.status = 401;
+}
+UnAuthError.prototype = new Error();
+
 app.use(requestTime('Response-time'));
 app.use(cors());
 
@@ -43,6 +49,14 @@ app.use(jwt({
   },
   passthrough: true,
 }));
+
+app.use((ctx, next) => {
+  if (_.get(ctx.headers, 'authorization') && _.isEmpty(ctx.state)) {
+    throw new UnAuthError();
+  }
+
+  return next();
+});
 
 app.use(graphqlRouter.routes());
 app.use(graphqlRouter.allowedMethods());
