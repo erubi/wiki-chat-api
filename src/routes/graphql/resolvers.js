@@ -1,3 +1,6 @@
+// const _ = require('lodash');
+// const fetch = require('../../lib/fetch');
+
 module.exports = {
   // Resolver functions signature
   // fieldName(obj, args, context, info) { result }
@@ -20,6 +23,11 @@ module.exports = {
       if (!url || !title || !context.user) return null;
       const entity = await context.db.query('INSERT INTO entities DEFAULT VALUES RETURNING id');
       const entityId = entity.rows[0].id;
+
+      // const archiveRes = await fetch.get('http://archive.org/wayback/available', { url });
+      // console.log('archiveRes', archiveRes);
+      // const archiveUrl = _.get(archiveRes, 'archived_snapshots.closest.url');
+
       const queryText = 'INSERT INTO news_items (id, url, title) VALUES ($1, $2, $3) RETURNING *';
       const res = await context.db.query(queryText, [entityId, url, title]);
 
