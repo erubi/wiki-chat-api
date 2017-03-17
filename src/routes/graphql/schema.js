@@ -26,6 +26,12 @@ const rootSchema = [`
 
   type NewsItems {
     edges: [NewsItemEdge]
+    pageInfo: PageInfo
+  }
+
+  type PageInfo {
+    endCursor: String!
+    hasNextPage: Boolean!
   }
 
   type NewsItemEdge {

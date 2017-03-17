@@ -1,25 +1,13 @@
-// const _ = require('lodash');
+const _ = require('lodash');
 // const fetch = require('../../lib/fetch');
 
-const toBase64 = (str) => {
-  return new Buffer(str).toString('base64');
-}
-
-const fromBase64 = (str) => {
-  return new Buffer(str, 'base64').toString('ascii');
-}
+const toBase64 = str => new Buffer(str).toString('base64');
+const fromBase64 = str => new Buffer(str, 'base64').toString('ascii');
 
 module.exports = {
   // Resolver functions signature
   // fieldName(obj, args, context, info) { result }
   Query: {
-    // feed: async (root, { type, offset = 0, limit = 10 }, context) => {
-    //   const protectedLimit = (limit < 1 || limit > 10) ? 10 : limit;
-    //   const queryText = 'SELECT * FROM news_items n
-    //   JOIN entities e ON n.id = e.id ORDER BY e.created_at LIMIT $1 OFFSET $2';
-    //   const res = await context.db.query(queryText, [protectedLimit, offset]);
-    //   return res.rows;
-    // },
     feed: async (root, { type = 'NEW', cursor, first = 10 }, context) => {
       let decodedCursor;
       if (cursor) decodedCursor = fromBase64(cursor);
@@ -29,19 +17,16 @@ module.exports = {
       switch (type) {
       case ('NEW'):
       default:
-        queryText = `SELECT * FROM news_items n
+        queryText = `SELECT *, extract('epoch' from created_at) as unix_time
+        FROM news_items n
         JOIN entities e ON n.id = e.id
         WHERE e.created_at < to_timestamp($1)
-        ORDER BY e.created_at
+        ORDER BY e.created_at DESC
         LIMIT $2`;
       }
 
-      const res = await context.db.query(queryText, [decodedCursor, first]);
+      const res = await context.db.query(queryText, [decodedCursor, first || 10]);
       return res.rows;
-      // return {
-        // cursor: toBase64(_.last(res.rows).created_at),
-        // entities: res.rows,
-      // };
     },
 
     currentUser: async (root, args, context) => {
@@ -72,6 +57,26 @@ module.exports = {
     edges(obj) {
       return obj;
     },
+
+    pageInfo: async (obj, args, context) => {
+      if (!obj.length) return { endCursor: '', hasNextPage: false };
+
+      // only accurate for NEW feed type
+      // TODO: should move query to feed resolver?
+      const lastObj = _.last(obj);
+      const queryText = `SELECT extract('epoch' from created_at)
+      FROM news_items n
+      JOIN entities e ON n.id = e.id
+      ORDER BY e.created_at DESC
+      LIMIT 1`;
+      const res = await context.db.query(queryText);
+      const hasNextPage = res.rows[0].created_at !== lastObj.unix_time;
+
+      return {
+        endCursor: toBase64(lastObj.unix_time.toString()),
+        hasNextPage,
+      };
+    },
   },
 
   NewsItemEdge: {
@@ -79,8 +84,9 @@ module.exports = {
       return obj;
     },
 
-    cursor(obj) {
-      return toBase64(obj.created_at.valueOf().toString());
+    cursor: async (obj) => {
+      if (!obj) return '';
+      return toBase64(obj.unix_time.toString());
     },
   },
 };
