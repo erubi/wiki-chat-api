@@ -20,9 +20,9 @@ module.exports = {
     //   const res = await context.db.query(queryText, [protectedLimit, offset]);
     //   return res.rows;
     // },
-    feed: async (root, { type = 'NEW', cursor = '', first = 10 }, context) => {
+    feed: async (root, { type = 'NEW', cursor, first = 10 }, context) => {
       let decodedCursor;
-      if (cursor.length) decodedCursor = fromBase64(cursor);
+      if (cursor) decodedCursor = fromBase64(cursor);
       else decodedCursor = (new Date()).valueOf();
 
       let queryText;
