@@ -24,6 +24,15 @@ const rootSchema = [`
     name: String!
   }
 
+  type NewsItems {
+    edges: [NewsItemEdge]
+  }
+
+  type NewsItemEdge {
+    cursor: String
+    node: NewsItem
+  }
+
   type NewsItem implements Node {
     id: ID!
     url: String!
@@ -47,7 +56,7 @@ const rootSchema = [`
 
     entity(id: ID!): Entity
 
-    feed(type: FeedType, offset: Int, limit: Int): [NewsItem]
+    feed(type: FeedType, cursor: String, first: Int): NewsItems
   }
 
   enum VoteType {
