@@ -21,6 +21,7 @@ module.exports = (db) => {
       debug: true,
       formatError: (e) => {
         console.log('graphql endpoint error: ', e);
+        return e;
       },
     };
   }));
