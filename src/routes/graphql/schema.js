@@ -49,6 +49,8 @@ const rootSchema = [`
     id: ID!
     url: String!
     title: String!
+    vote_sum: Int!,
+    userVote: EntityVote
     newsSource: NewsSource
   }
 

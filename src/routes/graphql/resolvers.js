@@ -59,10 +59,14 @@ module.exports = {
       switch (type) {
       case ('NEW'):
       default:
-        queryText = `SELECT *, extract('epoch' from created_at) as unix_time
+        queryText = `SELECT n.id, n.title, n.url,
+        extract('epoch' from e.created_at) as unix_time,
+        COALESCE(sum(v.vote), 0) as vote_sum
         FROM news_items n
         JOIN entities e ON n.id = e.id
+        LEFT OUTER JOIN entity_votes v ON v.entity_id = e.id
         WHERE e.created_at < to_timestamp($1)
+        GROUP BY n.id, e.created_at
         ORDER BY e.created_at DESC
         LIMIT $2`;
       }
