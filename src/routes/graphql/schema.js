@@ -11,6 +11,12 @@ const rootSchema = [`
     id: ID!
   }
 
+  type EntityVote {
+    entity_id: Int!
+    user_id: Int!
+    vote: Int!
+  }
+
   type User implements Node {
     id: ID!
     name: String
@@ -68,7 +74,6 @@ const rootSchema = [`
   enum VoteType {
     UP
     DOWN
-    CANCEL
   }
 
   type Mutation {
@@ -80,7 +85,7 @@ const rootSchema = [`
       news_source_id: Int
     ): NewsItem
 
-    vote (entityId: Int!, type: VoteType!): Entity
+    voteOnEntity (entityId: Int!, type: VoteType!): EntityVote
   }
 
   schema {

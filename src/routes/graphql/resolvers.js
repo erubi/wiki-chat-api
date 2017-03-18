@@ -7,6 +7,48 @@ const fromBase64 = str => new Buffer(str, 'base64').toString('ascii');
 module.exports = {
   // Resolver functions signature
   // fieldName(obj, args, context, info) { result }
+  Mutation: {
+    submitNewsItem: async (root, { url, title }, context) => {
+      if (!url || !title || !context.user) return null;
+      const entity = await context.db.query('INSERT INTO entities DEFAULT VALUES RETURNING id');
+      const entityId = entity.rows[0].id;
+
+      // const archiveRes = await fetch.get('http://archive.org/wayback/available', { url });
+      // console.log('archiveRes', archiveRes);
+      // const archiveUrl = _.get(archiveRes, 'archived_snapshots.closest.url');
+
+      const queryText = 'INSERT INTO news_items (id, url, title) VALUES ($1, $2, $3) RETURNING *';
+      const res = await context.db.query(queryText, [entityId, url, title]);
+
+      return res.rows[0];
+    },
+
+    voteOnEntity: async (root, { entityId, type }, { db, user }) => {
+      if (!user || !entityId || !type) return null;
+
+      const oldVoteRes = await db.query(`
+      SELECT * FROM entity_votes e
+      WHERE e.entity_id = $1 AND e.user_id = $2
+      `, [entityId, user.id]);
+
+      if (oldVoteRes.rowCount) {
+        const oldVote = oldVoteRes.rows[0];
+        const delRes = await db.query('DELETE FROM entity_votes e WHERE e.entity_id = $1 AND e.user_id = $2',
+          [entityId, user.id]);
+
+        if ((oldVote.vote === -1 && type === 'DOWN') || (oldVote === 1 && type === 'UP')) {
+          return delRes;
+        }
+      }
+
+      const newRes = await db.query('INSERT INTO entity_votes (entity_id, user_id, vote) VALUES ($1, $2, $3) RETURNING *', [
+        entityId, user.id, ((type === 'UP') ? 1 : -1),
+      ]);
+
+      return newRes.rows[0];
+    },
+  },
+
   Query: {
     feed: async (root, { type = 'NEW', cursor, first = 10 }, context) => {
       let decodedCursor;
@@ -32,23 +74,6 @@ module.exports = {
     currentUser: async (root, args, context) => {
       if (!context.user) return null;
       const res = await context.db.query('SELECT * FROM USERS u WHERE u.id = $1', [context.user.id]);
-      return res.rows[0];
-    },
-  },
-
-  Mutation: {
-    submitNewsItem: async (root, { url, title }, context) => {
-      if (!url || !title || !context.user) return null;
-      const entity = await context.db.query('INSERT INTO entities DEFAULT VALUES RETURNING id');
-      const entityId = entity.rows[0].id;
-
-      // const archiveRes = await fetch.get('http://archive.org/wayback/available', { url });
-      // console.log('archiveRes', archiveRes);
-      // const archiveUrl = _.get(archiveRes, 'archived_snapshots.closest.url');
-
-      const queryText = 'INSERT INTO news_items (id, url, title) VALUES ($1, $2, $3) RETURNING *';
-      const res = await context.db.query(queryText, [entityId, url, title]);
-
       return res.rows[0];
     },
   },
