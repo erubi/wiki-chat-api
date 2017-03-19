@@ -87,7 +87,7 @@ const rootSchema = [`
       news_source_id: Int
     ): NewsItem
 
-    voteOnEntity (entityId: Int!, type: VoteType!): EntityVote
+    voteOnEntity (entityId: Int!, type: VoteType!): Entity
   }
 
   schema {

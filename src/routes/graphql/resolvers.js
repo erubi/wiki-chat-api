@@ -33,19 +33,19 @@ module.exports = {
 
       if (oldVoteRes.rowCount) {
         const oldVote = oldVoteRes.rows[0];
-        const delRes = await db.query('DELETE FROM entity_votes e WHERE e.entity_id = $1 AND e.user_id = $2',
+        await db.query('DELETE FROM entity_votes e WHERE e.entity_id = $1 AND e.user_id = $2',
           [entityId, user.id]);
 
-        if ((oldVote.vote === -1 && type === 'DOWN') || (oldVote === 1 && type === 'UP')) {
-          return delRes;
+        if ((oldVote.vote === -1 && type === 'DOWN') || (oldVote.vote === 1 && type === 'UP')) {
+          return { id: entityId };
         }
       }
 
-      const newRes = await db.query('INSERT INTO entity_votes (entity_id, user_id, vote) VALUES ($1, $2, $3) RETURNING *', [
+      await db.query('INSERT INTO entity_votes (entity_id, user_id, vote) VALUES ($1, $2, $3) RETURNING *', [
         entityId, user.id, ((type === 'UP') ? 1 : -1),
       ]);
 
-      return newRes.rows[0];
+      return { id: entityId };
     },
   },
 
