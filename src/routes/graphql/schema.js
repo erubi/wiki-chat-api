@@ -16,6 +16,7 @@ const rootSchema = [`
   interface Entity {
     id: ID!
     vote_sum: Int
+    user_vote: Int
   }
 
   type EntityVote {
@@ -51,6 +52,7 @@ const rootSchema = [`
     url: String!
     name: String!
     vote_sum: Int!
+    user_vote: Int
   }
 
   type NewsItem implements Entity {
@@ -58,7 +60,7 @@ const rootSchema = [`
     url: String!
     title: String!
     vote_sum: Int!
-    userVote: EntityVote
+    user_vote: Int
     newsSource: NewsSource
   }
 
@@ -81,11 +83,6 @@ const rootSchema = [`
     feed(type: FeedType, cursor: String, first: Int): Entities
   }
 
-  enum Vote {
-    UP
-    DOWN
-  }
-
   type Mutation {
     submitNewsItem (
       url: String!,
@@ -95,7 +92,7 @@ const rootSchema = [`
       news_source_id: Int
     ): NewsItem
 
-    voteOnEntity (entityId: Int!, entityType: EntityType!, vote: Vote!): Entity
+    voteOnEntity (entityId: Int!, entityType: EntityType!, vote: Int!): Entity
   }
 
   schema {

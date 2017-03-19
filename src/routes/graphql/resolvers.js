@@ -26,7 +26,6 @@ module.exports = {
     voteOnEntity: async (root, { entityId, entityType, vote }, { db, user }) => {
       if (!user || !entityId || !entityType || !vote) return null;
 
-      const userVoteVal = vote === 'UP' ? 1 : -1;
       const voteDataRes = await db.query(`
       SELECT CAST(COALESCE(sum(v.vote), 0) AS integer) as vote_sum,
       (SELECT vote as user_vote FROM entity_votes v WHERE v.entity_id = $1 AND v.user_id = $2)
@@ -42,25 +41,40 @@ module.exports = {
           [entityId, user.id]);
 
         // if vote negates previous vote, don't insert new vote, return obj here
-        if (voteData.user_vote === userVoteVal) {
-          return { id: entityId, vote_sum: (voteData.vote_sum - voteData.user_vote), entityType };
+        if (voteData.user_vote === vote) {
+          return {
+            id: entityId,
+            entityType,
+            vote_sum: (voteData.vote_sum - voteData.user_vote),
+            user_vote: null,
+          };
         }
       }
 
       await db.query('INSERT INTO entity_votes (entity_id, user_id, vote) VALUES ($1, $2, $3) RETURNING *', [
-        entityId, user.id, userVoteVal,
+        entityId, user.id, vote,
       ]);
 
       if (voteData.user_vote) {
-        return { id: entityId, vote_sum: (voteData.vote_sum - voteData.user_vote + userVoteVal), entityType };
+        return {
+          id: entityId,
+          entityType,
+          user_vote: vote,
+          vote_sum: (voteData.vote_sum - voteData.user_vote + vote),
+        };
       }
 
-      return { id: entityId, vote_sum: (voteData.vote_sum + userVoteVal), entityType };
+      return {
+        id: entityId,
+        entityType,
+        user_vote: vote,
+        vote_sum: (voteData.vote_sum + vote),
+      };
     },
   },
 
   Query: {
-    feed: async (root, { type = 'NEW', cursor, first = 10 }, context) => {
+    feed: async (root, { type = 'NEW', cursor, first = 10 }, { user, db }) => {
       let decodedCursor;
       if (cursor) decodedCursor = fromBase64(cursor);
       else decodedCursor = (new Date()).valueOf();
@@ -71,7 +85,8 @@ module.exports = {
       default:
         queryText = `SELECT n.id, n.title, n.url,
         extract('epoch' from e.created_at) as unix_time,
-        COALESCE(sum(v.vote), 0) as vote_sum
+        COALESCE(sum(v.vote), 0) as vote_sum,
+        (SELECT vote as user_vote FROM entity_votes v WHERE v.entity_id = n.id AND v.user_id = $3)
         FROM news_items n
         JOIN entities e ON n.id = e.id
         LEFT OUTER JOIN entity_votes v ON v.entity_id = e.id
@@ -81,7 +96,7 @@ module.exports = {
         LIMIT $2`;
       }
 
-      const res = await context.db.query(queryText, [decodedCursor, first || 10]);
+      const res = await db.query(queryText, [decodedCursor, first || 10, user.id]);
 
       if (!res.rowCount) return { edges: [], endCursor: '', hasNextPage: false };
       const lastObj = _.last(res.rows);
@@ -90,7 +105,7 @@ module.exports = {
       JOIN entities e ON n.id = e.id
       ORDER BY e.created_at
       LIMIT 1`;
-      const lastItemRes = await context.db.query(lastItemQuery);
+      const lastItemRes = await db.query(lastItemQuery);
       const hasNextPage = lastItemRes.rows[0].unix_time !== lastObj.unix_time;
       const endCursor = toBase64(lastObj.unix_time.toString());
 
