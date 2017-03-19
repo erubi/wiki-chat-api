@@ -7,14 +7,36 @@ const rootSchema = [`
     id: ID!
   }
 
-  type Entity implements Node {
+  enum EntityType {
+    NewsItem
+    NewsSource
+    Comment
+  }
+
+  interface Entity {
     id: ID!
+    vote_sum: Int
   }
 
   type EntityVote {
     entity_id: Int!
     user_id: Int!
     vote: Int!
+  }
+
+  type Entities {
+    edges: [EntityEdge]
+    pageInfo: PageInfo
+  }
+
+  type PageInfo {
+    endCursor: String!
+    hasNextPage: Boolean!
+  }
+
+  type EntityEdge {
+    cursor: String
+    node: Entity
   }
 
   type User implements Node {
@@ -24,32 +46,18 @@ const rootSchema = [`
     username: String
   }
 
-  type NewsSource implements Node {
+  type NewsSource implements Entity {
     id: ID!
     url: String!
     name: String!
+    vote_sum: Int!
   }
 
-  type NewsItems {
-    edges: [NewsItemEdge]
-    pageInfo: PageInfo
-  }
-
-  type PageInfo {
-    endCursor: String!
-    hasNextPage: Boolean!
-  }
-
-  type NewsItemEdge {
-    cursor: String
-    node: NewsItem
-  }
-
-  type NewsItem implements Node {
+  type NewsItem implements Entity {
     id: ID!
     url: String!
     title: String!
-    vote_sum: Int!,
+    vote_sum: Int!
     userVote: EntityVote
     newsSource: NewsSource
   }
@@ -70,10 +78,10 @@ const rootSchema = [`
 
     entity(id: ID!): Entity
 
-    feed(type: FeedType, cursor: String, first: Int): NewsItems
+    feed(type: FeedType, cursor: String, first: Int): Entities
   }
 
-  enum VoteType {
+  enum Vote {
     UP
     DOWN
   }
@@ -87,7 +95,7 @@ const rootSchema = [`
       news_source_id: Int
     ): NewsItem
 
-    voteOnEntity (entityId: Int!, type: VoteType!): Entity
+    voteOnEntity (entityId: Int!, entityType: EntityType!, vote: Vote!): Entity
   }
 
   schema {

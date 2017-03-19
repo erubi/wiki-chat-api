@@ -23,29 +23,39 @@ module.exports = {
       return res.rows[0];
     },
 
-    voteOnEntity: async (root, { entityId, type }, { db, user }) => {
-      if (!user || !entityId || !type) return null;
+    voteOnEntity: async (root, { entityId, entityType, vote }, { db, user }) => {
+      if (!user || !entityId || !entityType || !vote) return null;
 
-      const oldVoteRes = await db.query(`
-      SELECT * FROM entity_votes e
-      WHERE e.entity_id = $1 AND e.user_id = $2
+      const userVoteVal = vote === 'UP' ? 1 : -1;
+      const voteDataRes = await db.query(`
+      SELECT CAST(COALESCE(sum(v.vote), 0) AS integer) as vote_sum,
+      (SELECT vote as user_vote FROM entity_votes v WHERE v.entity_id = $1 AND v.user_id = $2)
+      FROM entity_votes v
+      WHERE v.entity_id = $1
       `, [entityId, user.id]);
 
-      if (oldVoteRes.rowCount) {
-        const oldVote = oldVoteRes.rows[0];
+      const voteData = voteDataRes.rows[0];
+
+      if (voteData.user_vote) {
+        // always delete old user vote if exists
         await db.query('DELETE FROM entity_votes e WHERE e.entity_id = $1 AND e.user_id = $2',
           [entityId, user.id]);
 
-        if ((oldVote.vote === -1 && type === 'DOWN') || (oldVote.vote === 1 && type === 'UP')) {
-          return { id: entityId };
+        // if vote negates previous vote, don't insert new vote, return obj here
+        if (voteData.user_vote === userVoteVal) {
+          return { id: entityId, vote_sum: (voteData.vote_sum - voteData.user_vote), entityType };
         }
       }
 
       await db.query('INSERT INTO entity_votes (entity_id, user_id, vote) VALUES ($1, $2, $3) RETURNING *', [
-        entityId, user.id, ((type === 'UP') ? 1 : -1),
+        entityId, user.id, userVoteVal,
       ]);
 
-      return { id: entityId };
+      if (voteData.user_vote) {
+        return { id: entityId, vote_sum: (voteData.vote_sum - voteData.user_vote + userVoteVal), entityType };
+      }
+
+      return { id: entityId, vote_sum: (voteData.vote_sum + userVoteVal), entityType };
     },
   },
 
@@ -72,7 +82,19 @@ module.exports = {
       }
 
       const res = await context.db.query(queryText, [decodedCursor, first || 10]);
-      return res.rows;
+
+      if (!res.rowCount) return { edges: [], endCursor: '', hasNextPage: false };
+      const lastObj = _.last(res.rows);
+      const lastItemQuery = `SELECT extract('epoch' from created_at) as unix_time
+      FROM news_items n
+      JOIN entities e ON n.id = e.id
+      ORDER BY e.created_at
+      LIMIT 1`;
+      const lastItemRes = await context.db.query(lastItemQuery);
+      const hasNextPage = lastItemRes.rows[0].unix_time !== lastObj.unix_time;
+      const endCursor = toBase64(lastObj.unix_time.toString());
+
+      return { edges: res.rows, endCursor, hasNextPage };
     },
 
     currentUser: async (root, args, context) => {
@@ -82,33 +104,20 @@ module.exports = {
     },
   },
 
-  NewsItems: {
+  Entities: {
     edges(obj) {
-      return obj;
+      return obj.edges;
     },
 
-    pageInfo: async (obj, args, context) => {
-      if (!obj.length) return { endCursor: '', hasNextPage: false };
-
-      // only accurate for NEW feed type
-      // TODO: should move query to feed resolver?
-      const lastObj = _.last(obj);
-      const queryText = `SELECT extract('epoch' from created_at)
-      FROM news_items n
-      JOIN entities e ON n.id = e.id
-      ORDER BY e.created_at DESC
-      LIMIT 1`;
-      const res = await context.db.query(queryText);
-      const hasNextPage = res.rows[0].created_at !== lastObj.unix_time;
-
+    pageInfo(obj) {
       return {
-        endCursor: toBase64(lastObj.unix_time.toString()),
-        hasNextPage,
+        endCursor: obj.endCursor,
+        hasNextPage: obj.hasNextPage,
       };
     },
   },
 
-  NewsItemEdge: {
+  EntityEdge: {
     node(obj) {
       return obj;
     },
@@ -116,6 +125,15 @@ module.exports = {
     cursor: async (obj) => {
       if (!obj) return '';
       return toBase64(obj.unix_time.toString());
+    },
+  },
+
+  Entity: {
+    __resolveType(obj) {
+      const keys = Object.keys(obj);
+      if ((keys.includes('title') && keys.includes('url')) || obj.entityType === 'NewsItem') return 'NewsItem';
+      if (keys.includes('name') && keys.includes('url')) return 'NewsSource';
+      return null;
     },
   },
 };
