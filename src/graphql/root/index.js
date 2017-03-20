@@ -1,7 +1,8 @@
 // const fetch = require('../../lib/fetch');
+const schema = require('./schema');
 const toBase64 = str => new Buffer(str).toString('base64');
 
-module.exports = {
+const resolvers = {
   // Resolver functions signature
   // fieldName(obj, args, context, info) { result }
   Mutation: {
@@ -112,3 +113,4 @@ module.exports = {
   },
 };
 
+module.exports = { resolvers, schema };
