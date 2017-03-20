@@ -22,6 +22,14 @@ const schema = [`
     vote: Int!
   }
 
+  type EntityComment {
+    id: ID!
+    entity_id: Int!
+    user_id: Int!
+    body: String!
+    user_vote: Int
+  }
+
   type Entities {
     edges: [EntityEdge]
     pageInfo: PageInfo
@@ -59,6 +67,7 @@ const schema = [`
     vote_sum: Int!
     user_vote: Int
     newsSource: NewsSource
+    comments: [EntityComment]
   }
 
   type Query {
@@ -67,6 +76,8 @@ const schema = [`
     user(id: ID!): User
 
     entity(id: ID!): Entity
+
+    newsItem(id: ID!): NewsItem
   }
 
   type Mutation {
