@@ -77,6 +77,37 @@ const resolvers = {
       const res = await context.db.query('SELECT * FROM USERS u WHERE u.id = $1', [context.user.id]);
       return res.rows[0];
     },
+
+    newsItem: async (root, { id }, { user, db }) => {
+      let queryText;
+      if (user) {
+        queryText = `SELECT n.id, n.title, n.url, c.*,
+        extract('epoch' from e.created_at) as unix_time,
+        COALESCE(sum(v.vote), 0) as vote_sum,
+        (SELECT vote as user_vote FROM entity_votes v WHERE v.entity_id = n.id AND v.user_id = $2)
+        FROM news_items n
+        JOIN entities e ON n.id = e.id
+        LEFT OUTER JOIN entity_votes v ON v.entity_id = n.id
+        LEFT OUTER JOIN entity_comments c ON c.entity_id = n.id
+        WHERE n.id = $1
+        GROUP BY n.id, c.id, e.created_at`;
+      } else {
+        queryText = `SELECT n.id, n.title, n.url, c.*,
+        extract('epoch' from e.created_at) as unix_time,
+        COALESCE(sum(v.vote), 0) as vote_sum,
+        FROM news_items n
+        JOIN entities e ON n.id = e.id
+        LEFT OUTER JOIN entity_votes v ON v.entity_id = n.id
+        LEFT OUTER JOIN entity_comments c ON c.entity_id = n.id
+        WHERE n.id = $1
+        GROUP BY n.id, c.id, e.created_at`;
+      }
+
+      const res = await db.query(queryText, [id, user.id]);
+
+      if (res.rowCount) return res.rows[0];
+      return null;
+    },
   },
 
   Entities: {
@@ -109,6 +140,35 @@ const resolvers = {
       if ((keys.includes('title') && keys.includes('url')) || obj.entityType === 'NewsItem') return 'NewsItem';
       if (keys.includes('name') && keys.includes('url')) return 'NewsSource';
       return null;
+    },
+  },
+
+  NewsItem: {
+    comments: async (obj, args, { db, user }) => {
+      let quertyText;
+      if (user) {
+        queryText = `SELECT c.*,
+        extract('epoch' from e.created_at) as unix_time,
+        COALESCE(sum(v.vote), 0) as vote_sum,
+        (SELECT vote as user_vote FROM entity_votes v WHERE v.entity_id = c.id AND v.user_id = $2)
+        FROM entity_comments c
+        JOIN entities e ON c.id = e.id
+        LEFT OUTER JOIN entity_votes v ON v.entity_id = c.id
+        WHERE c.entity_id = $1
+        GROUP BY c.id, e.created_at`;
+      } else {
+        queryText = `SELECT c.*,
+        extract('epoch' from e.created_at) as unix_time,
+        COALESCE(sum(v.vote), 0) as vote_sum,
+        FROM entity_comments c
+        JOIN entities e ON c.id = e.id
+        LEFT OUTER JOIN entity_votes v ON v.entity_id = c.id
+        WHERE c.entity_id = $1
+        GROUP BY c.id, e.created_at`;
+      }
+      const res = await db.query(queryText, [obj.id, user.id]);
+      if (res.rowCount) return res.rows;
+      return [];
     },
   },
 };
