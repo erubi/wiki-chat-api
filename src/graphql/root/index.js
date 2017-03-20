@@ -81,30 +81,27 @@ const resolvers = {
     newsItem: async (root, { id }, { user, db }) => {
       let queryText;
       if (user) {
-        queryText = `SELECT n.id, n.title, n.url, c.*,
+        queryText = `SELECT n.*,
         extract('epoch' from e.created_at) as unix_time,
         COALESCE(sum(v.vote), 0) as vote_sum,
         (SELECT vote as user_vote FROM entity_votes v WHERE v.entity_id = n.id AND v.user_id = $2)
         FROM news_items n
         JOIN entities e ON n.id = e.id
         LEFT OUTER JOIN entity_votes v ON v.entity_id = n.id
-        LEFT OUTER JOIN entity_comments c ON c.entity_id = n.id
         WHERE n.id = $1
-        GROUP BY n.id, c.id, e.created_at`;
+        GROUP BY n.id, e.created_at`;
       } else {
-        queryText = `SELECT n.id, n.title, n.url, c.*,
+        queryText = `SELECT n.*,
         extract('epoch' from e.created_at) as unix_time,
         COALESCE(sum(v.vote), 0) as vote_sum,
         FROM news_items n
         JOIN entities e ON n.id = e.id
         LEFT OUTER JOIN entity_votes v ON v.entity_id = n.id
-        LEFT OUTER JOIN entity_comments c ON c.entity_id = n.id
         WHERE n.id = $1
-        GROUP BY n.id, c.id, e.created_at`;
+        GROUP BY n.id, e.created_at`;
       }
 
       const res = await db.query(queryText, [id, user.id]);
-
       if (res.rowCount) return res.rows[0];
       return null;
     },
