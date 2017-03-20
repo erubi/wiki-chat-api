@@ -2,6 +2,7 @@ CREATE TABLE entity_comments (
   id integer REFERENCES entities ON DELETE CASCADE PRIMARY KEY,
   entity_id integer REFERENCES entities NOT NULL,
   user_id integer REFERENCES users NOT NULL,
+  parent_id integer REFERENCES entity_comments,
   body text NOT NULL,
   CHECK (body != '')
 );
