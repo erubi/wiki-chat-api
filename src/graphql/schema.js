@@ -1,4 +1,7 @@
-// based on:
+const _ = require('lodash');
+const graphqlTools = require('graphql-tools');
+const feed = require('./feed');
+const rootResolvers = require('./resolvers');
 // https://github.com/apollographql/GitHunt-API/blob/master/api/schema.js
 
 const rootSchema = [`
@@ -64,23 +67,12 @@ const rootSchema = [`
     newsSource: NewsSource
   }
 
-  enum FeedType {
-     # Sort by a combination of freshness and score, using Reddit's algorithm
-    HOT
-    # Newest entries first
-    NEW
-    # Highest score entries first
-    TOP
-  }
-
   type Query {
     currentUser: User
 
     user(id: ID!): User
 
     entity(id: ID!): Entity
-
-    feed(type: FeedType, cursor: String, first: Int): Entities
   }
 
   type Mutation {
@@ -101,5 +93,12 @@ const rootSchema = [`
   }
 `];
 
-module.exports = rootSchema;
+const schema = graphqlTools.makeExecutableSchema({
+  typeDefs: [...rootSchema, ...feed.schema],
+  resolvers: _.merge(rootResolvers, feed.resolvers),
+  logger: { log: e => console.error('resolver error', e) },
+  allowUndefinedInResolve: false,
+});
+
+module.exports = schema;
 
