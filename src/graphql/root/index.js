@@ -80,6 +80,7 @@ const resolvers = {
 
     newsItem: async (root, { id }, { user, db }) => {
       let queryText;
+      let res;
       if (user) {
         queryText = `SELECT n.*,
         extract('epoch' from e.created_at) as unix_time,
@@ -90,18 +91,21 @@ const resolvers = {
         LEFT OUTER JOIN entity_votes v ON v.entity_id = n.id
         WHERE n.id = $1
         GROUP BY n.id, e.created_at`;
+
+        res = await db.query(queryText, [id, user.id]);
       } else {
         queryText = `SELECT n.*,
         extract('epoch' from e.created_at) as unix_time,
-        COALESCE(sum(v.vote), 0) as vote_sum,
+        COALESCE(sum(v.vote), 0) as vote_sum
         FROM news_items n
         JOIN entities e ON n.id = e.id
         LEFT OUTER JOIN entity_votes v ON v.entity_id = n.id
         WHERE n.id = $1
         GROUP BY n.id, e.created_at`;
+
+        res = await db.query(queryText, [id]);
       }
 
-      const res = await db.query(queryText, [id, user.id]);
       if (res.rowCount) return res.rows[0];
       return null;
     },
@@ -143,6 +147,8 @@ const resolvers = {
   NewsItem: {
     comments: async (obj, args, { db, user }) => {
       let quertyText;
+      let res;
+
       if (user) {
         queryText = `SELECT c.*,
         extract('epoch' from e.created_at) as unix_time,
@@ -153,17 +159,20 @@ const resolvers = {
         LEFT OUTER JOIN entity_votes v ON v.entity_id = c.id
         WHERE c.entity_id = $1
         GROUP BY c.id, e.created_at`;
+
+        res = await db.query(queryText, [obj.id, user.id]);
       } else {
         queryText = `SELECT c.*,
         extract('epoch' from e.created_at) as unix_time,
-        COALESCE(sum(v.vote), 0) as vote_sum,
+        COALESCE(sum(v.vote), 0) as vote_sum
         FROM entity_comments c
         JOIN entities e ON c.id = e.id
         LEFT OUTER JOIN entity_votes v ON v.entity_id = c.id
         WHERE c.entity_id = $1
         GROUP BY c.id, e.created_at`;
+
+        res = await db.query(queryText, [obj.id]);
       }
-      const res = await db.query(queryText, [obj.id, user.id]);
       if (res.rowCount) return res.rows;
       return [];
     },
