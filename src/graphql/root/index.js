@@ -21,6 +21,24 @@ const resolvers = {
       return res.rows[0];
     },
 
+    commentOnEntity: async (root, { entityId, parentId, entityType, body }, { db, user }) => {
+      if (!user || !entityId || !entityType || !body) return null;
+      const entity = await db.query('INSERT INTO entities DEFAULT VALUES RETURNING id');
+      const id = entity.rows[0].id;
+
+      let queryText;
+      let insertRes;
+      if (parentId) {
+        queryText = 'INSERT INTO entity_comments (id, entity_id, parent_id, user_id, body) VALUES ($1, $2, $3, $4, $5)';
+        insertRes = await db.query(queryText, [id, entityId, parentId, user.id, body]);
+      } else {
+        queryText = 'INSERT INTO entity_comments (id, entity_id, user_id, body) VALUES ($1, $2, $3, $4)';
+        insertRes = await db.query(queryText, [id, entityId, user.id, body]);
+      }
+
+      return insertRes.rows[0];
+    },
+
     voteOnEntity: async (root, { entityId, entityType, vote }, { db, user }) => {
       if (!user || !entityId || !entityType || !vote) return null;
 

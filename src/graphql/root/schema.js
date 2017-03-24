@@ -27,7 +27,9 @@ const schema = [`
     entity_id: Int!
     user_id: Int!
     body: String!
+    parent_id: Int
     user_vote: Int
+    vote_sum: Int
   }
 
   type Entities {
@@ -90,6 +92,8 @@ const schema = [`
     ): NewsItem
 
     voteOnEntity (entityId: Int!, entityType: EntityType!, vote: Int!): Entity
+
+    commentOnEntity (entityId: Int!, parentId: Int, entityType: EntityType!, body: String!): EntityComment
   }
 
   schema {
