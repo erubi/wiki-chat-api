@@ -1,7 +1,8 @@
 // const fetch = require('../../lib/fetch');
-const schema = require('./schema');
-const toBase64 = str => new Buffer(str).toString('base64');
 const _ = require('lodash');
+const schema = require('./schema');
+
+const toBase64 = str => new Buffer(str).toString('base64');
 
 const resolvers = {
   // Resolver functions signature
@@ -39,7 +40,7 @@ const resolvers = {
         insertRes = await db.query(queryText, [id, entityId, user.id, body]);
       }
 
-      return insertRes.rows[0];
+      return Object.assign({}, { username: user.username }, insertRes.rows[0]);
     },
 
     voteOnEntity: async (root, { entityId, entityType, vote }, { db, user }) => {
@@ -162,13 +163,14 @@ const resolvers = {
 
   NewsItem: {
     comments: async (obj, args, { db, user }) => {
-      let quertyText;
+      let queryText;
       let res;
 
       if (user) {
         queryText = `SELECT c.*,
         extract('epoch' from e.created_at) as unix_time,
         COALESCE(sum(v.vote), 0) as vote_sum,
+        (SELECT username FROM users u WHERE u.id = c.user_id),
         (SELECT vote as user_vote FROM entity_votes v WHERE v.entity_id = c.id AND v.user_id = $2)
         FROM entity_comments c
         JOIN entities e ON c.id = e.id
@@ -180,6 +182,7 @@ const resolvers = {
       } else {
         queryText = `SELECT c.*,
         extract('epoch' from e.created_at) as unix_time,
+        (SELECT username FROM users u WHERE u.id = c.user_id),
         COALESCE(sum(v.vote), 0) as vote_sum
         FROM entity_comments c
         JOIN entities e ON c.id = e.id
