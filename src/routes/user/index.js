@@ -20,7 +20,7 @@ module.exports = (db) => {
       result = await db.query(queryText, [username, email]);
       // ctx.body = _.pick(result.rows[0], ['id', 'email', 'username']);
       ctx.body = {
-        token: jwt.sign({ id: result.rows[0].id }, process.env.JWT_SECRET),
+        token: jwt.sign(result.rows[0], process.env.JWT_SECRET),
         message: 'Successfully logged in',
       };
     } catch (err) {
@@ -46,7 +46,7 @@ module.exports = (db) => {
       result = await db.query(queryText);
       if (!(_.get(result, 'rows.length'))) throw new Error();
       ctx.body = {
-        token: jwt.sign({ id: result.rows[0].id }, process.env.JWT_SECRET),
+        token: jwt.sign(result.rows[0], process.env.JWT_SECRET),
         user: result.rows[0],
       };
     } catch (err) {
