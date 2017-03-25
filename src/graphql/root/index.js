@@ -23,26 +23,6 @@ const resolvers = {
       return res.rows[0];
     },
 
-    commentOnEntity: async (root, { entityId, parentId, entityType, body }, { db, user }) => {
-      if (!user || !entityId || !entityType || !body) return null;
-      const entity = await db.query('INSERT INTO entities DEFAULT VALUES RETURNING id');
-      const id = entity.rows[0].id;
-
-      let queryText;
-      let insertRes;
-      if (parentId) {
-        queryText = `INSERT INTO entity_comments (id, entity_id, parent_id, user_id, body)
-        VALUES ($1, $2, $3, $4, $5) RETURNING *`;
-        insertRes = await db.query(queryText, [id, entityId, parentId, user.id, body]);
-      } else {
-        queryText = `INSERT INTO entity_comments (id, entity_id, user_id, body)
-        VALUES ($1, $2, $3, $4) RETURNING *`;
-        insertRes = await db.query(queryText, [id, entityId, user.id, body]);
-      }
-
-      return Object.assign({}, { username: user.username }, insertRes.rows[0]);
-    },
-
     voteOnEntity: async (root, { entityId, entityType, vote }, { db, user }) => {
       if (!user || !entityId || !entityType || !vote) return null;
 
@@ -160,52 +140,7 @@ const resolvers = {
       return null;
     },
   },
-
-  NewsItem: {
-    comments: async (obj, args, { db, user }) => {
-      let queryText;
-      let res;
-
-      if (user) {
-        queryText = `SELECT c.*,
-        extract('epoch' from e.created_at) as unix_time,
-        COALESCE(sum(v.vote), 0) as vote_sum,
-        (SELECT username FROM users u WHERE u.id = c.user_id),
-        (SELECT vote as user_vote FROM entity_votes v WHERE v.entity_id = c.id AND v.user_id = $2)
-        FROM entity_comments c
-        JOIN entities e ON c.id = e.id
-        LEFT OUTER JOIN entity_votes v ON v.entity_id = c.id
-        WHERE c.entity_id = $1
-        GROUP BY c.id, e.created_at`;
-
-        res = await db.query(queryText, [obj.id, user.id]);
-      } else {
-        queryText = `SELECT c.*,
-        extract('epoch' from e.created_at) as unix_time,
-        (SELECT username FROM users u WHERE u.id = c.user_id),
-        COALESCE(sum(v.vote), 0) as vote_sum
-        FROM entity_comments c
-        JOIN entities e ON c.id = e.id
-        LEFT OUTER JOIN entity_votes v ON v.entity_id = c.id
-        WHERE c.entity_id = $1
-        GROUP BY c.id, e.created_at`;
-
-        res = await db.query(queryText, [obj.id]);
-      }
-      if (res.rowCount) return res.rows;
-      return [];
-    },
-  },
-
-  EntityComment: {
-    vote_sum(obj) {
-      return _.get(obj, 'vote_sum', 0);
-    },
-
-    user_vote(obj) {
-      return _.get(obj, 'user_vote', null);
-    },
-  }
 };
 
 module.exports = { resolvers, schema };
+

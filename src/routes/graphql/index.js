@@ -1,6 +1,6 @@
 const Router = require('koa-router');
 const graphqlKoa = require('graphql-server-koa').graphqlKoa;
-const schema = require('../../graphql/schema');
+const schema = require('../../graphql');
 
 module.exports = (db) => {
   const router = new Router();

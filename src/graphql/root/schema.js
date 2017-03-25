@@ -22,17 +22,6 @@ const schema = [`
     vote: Int!
   }
 
-  type EntityComment implements Entity {
-    id: ID!
-    entity_id: Int!
-    user_id: Int!
-    body: String!
-    username: String!
-    parent_id: Int
-    user_vote: Int
-    vote_sum: Int
-  }
-
   type Entities {
     edges: [EntityEdge]
     pageInfo: PageInfo
@@ -70,7 +59,6 @@ const schema = [`
     vote_sum: Int!
     user_vote: Int
     newsSource: NewsSource
-    comments: [EntityComment]
   }
 
   type Query {
@@ -93,8 +81,6 @@ const schema = [`
     ): NewsItem
 
     voteOnEntity (entityId: Int!, entityType: EntityType!, vote: Int!): Entity
-
-    commentOnEntity (entityId: Int!, parentId: Int, entityType: EntityType!, body: String!): EntityComment
   }
 
   schema {
