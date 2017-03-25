@@ -67,24 +67,18 @@ const resolvers = {
         }
       }
 
+      // insert new vote
       await db.query('INSERT INTO entity_votes (entity_id, user_id, vote) VALUES ($1, $2, $3) RETURNING *', [
         entityId, user.id, vote,
       ]);
-
-      if (voteData.user_vote) {
-        return {
-          id: entityId,
-          entityType,
-          user_vote: vote,
-          vote_sum: (voteData.vote_sum - voteData.user_vote + vote),
-        };
-      }
 
       return {
         id: entityId,
         entityType,
         user_vote: vote,
-        vote_sum: (voteData.vote_sum + vote),
+        vote_sum: voteData.user_vote
+          ? ((voteData.vote_sum - voteData.user_vote) + vote)
+          : (voteData.vote_sum + vote),
       };
     },
   },
@@ -155,6 +149,7 @@ const resolvers = {
 
   Entity: {
     __resolveType(obj) {
+      if (obj.entityType) return obj.entityType;
       const keys = Object.keys(obj);
       if ((keys.includes('title') && keys.includes('url')) || obj.entityType === 'NewsItem') return 'NewsItem';
       if (keys.includes('name') && keys.includes('url')) return 'NewsSource';

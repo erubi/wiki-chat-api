@@ -7,7 +7,7 @@ const schema = [`
   enum EntityType {
     NewsItem
     NewsSource
-    Comment
+    EntityComment
   }
 
   interface Entity {
@@ -22,7 +22,7 @@ const schema = [`
     vote: Int!
   }
 
-  type EntityComment {
+  type EntityComment implements Entity {
     id: ID!
     entity_id: Int!
     user_id: Int!
