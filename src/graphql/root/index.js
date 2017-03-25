@@ -1,6 +1,7 @@
 // const fetch = require('../../lib/fetch');
 const schema = require('./schema');
 const toBase64 = str => new Buffer(str).toString('base64');
+const _ = require('lodash');
 
 const resolvers = {
   // Resolver functions signature
@@ -29,10 +30,12 @@ const resolvers = {
       let queryText;
       let insertRes;
       if (parentId) {
-        queryText = 'INSERT INTO entity_comments (id, entity_id, parent_id, user_id, body) VALUES ($1, $2, $3, $4, $5)';
+        queryText = `INSERT INTO entity_comments (id, entity_id, parent_id, user_id, body)
+        VALUES ($1, $2, $3, $4, $5) RETURNING *`;
         insertRes = await db.query(queryText, [id, entityId, parentId, user.id, body]);
       } else {
-        queryText = 'INSERT INTO entity_comments (id, entity_id, user_id, body) VALUES ($1, $2, $3, $4)';
+        queryText = `INSERT INTO entity_comments (id, entity_id, user_id, body)
+        VALUES ($1, $2, $3, $4) RETURNING *`;
         insertRes = await db.query(queryText, [id, entityId, user.id, body]);
       }
 
@@ -190,6 +193,16 @@ const resolvers = {
       return [];
     },
   },
+
+  EntityComment: {
+    vote_sum(obj) {
+      return _.get(obj, 'vote_sum', 0);
+    },
+
+    user_vote(obj) {
+      return _.get(obj, 'user_vote', null);
+    },
+  }
 };
 
 module.exports = { resolvers, schema };
