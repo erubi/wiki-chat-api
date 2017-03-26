@@ -15,7 +15,7 @@ const schema = [`
   }
 
   extend type Mutation {
-    commentOnEntity (entityId: Int!, parentId: Int, entityType: EntityType!, body: String!): EntityComment
+    commentOnEntity (entityId: Int!, parentId: Int, body: String!): EntityComment
   }
 
   extend type Query {
@@ -97,8 +97,8 @@ const resolvers = {
   },
 
   Mutation: {
-    commentOnEntity: async (root, { entityId, parentId, entityType, body }, { db, user }) => {
-      if (!user || !entityId || !entityType || !body) return null;
+    commentOnEntity: async (root, { entityId, parentId, body }, { db, user }) => {
+      if (!user || !entityId || !body) return null;
       const entity = await db.query('INSERT INTO entities DEFAULT VALUES RETURNING id');
       const id = entity.rows[0].id;
 
