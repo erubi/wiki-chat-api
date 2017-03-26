@@ -1,7 +1,5 @@
 const _ = require('lodash');
-
-const toBase64 = str => new Buffer(str).toString('base64');
-const fromBase64 = str => new Buffer(str, 'base64').toString('ascii');
+const utils = require('../../lib/utils');
 
 const schema = [`
   enum FeedType {
@@ -63,7 +61,7 @@ const resolvers = {
   Query: {
     feed: async (root, { type = 'NEW', cursor, first = 10 }, { user, db }) => {
       let decodedCursor;
-      if (cursor) decodedCursor = fromBase64(cursor);
+      if (cursor) decodedCursor = utils.fromBase64(cursor);
       else decodedCursor = (new Date().toJSON());
       let entitiesRes;
 
@@ -79,7 +77,7 @@ const resolvers = {
       LIMIT 1`;
       const lastItemRes = await db.query(lastItemQuery);
       const hasNextPage = lastItemRes.rows[0].created_at.toJSON() !== lastObj.created_at.toJSON();
-      const endCursor = toBase64(lastObj.created_at.toJSON());
+      const endCursor = utils.toBase64(lastObj.created_at.toJSON());
 
       return { edges: entitiesRes.rows, endCursor, hasNextPage };
     },
