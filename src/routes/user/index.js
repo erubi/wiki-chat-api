@@ -13,7 +13,7 @@ module.exports = (db) => {
     }
 
     const queryText = `INSERT INTO users (username, email, password) VALUES
-    ($1, $2, crypt('${password}', gen_salt('bf', 8))) RETURNING id`;
+    ($1, $2, crypt('${password}', gen_salt('bf', 8))) RETURNING *`;
 
     let result;
     try {
@@ -21,6 +21,7 @@ module.exports = (db) => {
       // ctx.body = _.pick(result.rows[0], ['id', 'email', 'username']);
       ctx.body = {
         token: jwt.sign(result.rows[0], process.env.JWT_SECRET),
+        user: result.rows[0],
         message: 'Successfully logged in',
       };
     } catch (err) {
