@@ -19,7 +19,7 @@ const schema = [`
   }
 
   extend type Query {
-    comments(entityId: ID!): Entities
+    comments(entityId: ID!, cursor: String, first: Int): Entities
   }
 `];
 
@@ -28,15 +28,14 @@ const fetchEntities = async ({ type, decodedCursor, first, db }) => {
   switch (type) {
   case ('NEW'):
   default:
-    queryText = `SELECT c.*,
+    queryText = `SELECT c.*, e.created_at,
     'EntityComment' as "entityType",
-    extract('epoch' from e.created_at) as unix_time,
     COALESCE(sum(v.vote), 0) as vote_sum,
     (SELECT username FROM users u WHERE u.id = c.user_id),
     FROM entity_comments c
     JOIN entities e ON c.id = e.id
     LEFT OUTER JOIN entity_votes v ON v.entity_id = e.id
-    WHERE c.entity_id = $4 AND e.created_at < to_timestamp($1)
+    WHERE c.entity_id = $4 AND e.created_at < $1
     GROUP BY c.id, e.created_at
     ORDER BY e.created_at DESC
     LIMIT $2`;
@@ -51,16 +50,15 @@ const fetchEntitiesForUser = async ({ type, decodedCursor, first, user, entityId
   switch (type) {
   case ('NEW'):
   default:
-    queryText = `SELECT c.*,
+    queryText = `SELECT c.*, e.created_at,
     'EntityComment' as "entityType",
-    extract('epoch' from e.created_at) as unix_time,
     COALESCE(sum(v.vote), 0) as vote_sum,
     (SELECT username FROM users u WHERE u.id = c.user_id),
     (SELECT vote as user_vote FROM entity_votes v WHERE v.entity_id = c.id AND v.user_id = $3)
     FROM entity_comments c
     JOIN entities e ON c.id = e.id
     LEFT OUTER JOIN entity_votes v ON v.entity_id = e.id
-    WHERE c.entity_id = $4 AND e.created_at < to_timestamp($1)
+    WHERE c.entity_id = $4 AND e.created_at < $1
     GROUP BY c.id, e.created_at
     ORDER BY e.created_at DESC
     LIMIT $2`;
@@ -75,7 +73,7 @@ const resolvers = {
     comments: async (root, { type = 'NEW', cursor, first = 10, entityId }, { user, db }) => {
       let decodedCursor;
       if (cursor) decodedCursor = fromBase64(cursor);
-      else decodedCursor = (new Date()).valueOf();
+      else decodedCursor = (new Date().toJSON());
       let entitiesRes;
 
       if (user) entitiesRes = await fetchEntitiesForUser({ type, decodedCursor, first, user, db, entityId });
@@ -83,14 +81,15 @@ const resolvers = {
 
       if (!entitiesRes.rowCount) return { edges: [], endCursor: '', hasNextPage: false };
       const lastObj = _.last(entitiesRes.rows);
-      const lastItemQuery = `SELECT extract('epoch' from created_at) as unix_time
+      const lastItemQuery = `SELECT e.created_at
       FROM entity_comments c
       JOIN entities e ON c.id = e.id
+      WHERE c.entity_id = $1
       ORDER BY e.created_at
       LIMIT 1`;
-      const lastItemRes = await db.query(lastItemQuery);
-      const hasNextPage = lastItemRes.rows[0].unix_time !== lastObj.unix_time;
-      const endCursor = toBase64(lastObj.unix_time.toString());
+      const lastItemRes = await db.query(lastItemQuery, [entityId]);
+      const hasNextPage = lastItemRes.rows[0].created_at.toJSON() !== lastObj.created_at.toJSON();
+      const endCursor = toBase64(lastObj.created_at.toJSON());
 
       return { edges: entitiesRes.rows, endCursor, hasNextPage };
     },

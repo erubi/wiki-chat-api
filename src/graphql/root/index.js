@@ -1,5 +1,5 @@
 // const fetch = require('../../lib/fetch');
-const _ = require('lodash');
+// const _ = require('lodash');
 const schema = require('./schema');
 
 const toBase64 = str => new Buffer(str).toString('base64');
@@ -127,7 +127,7 @@ const resolvers = {
 
     cursor: async (obj) => {
       if (!obj) return '';
-      return toBase64(obj.unix_time.toString());
+      return toBase64(obj.created_at.toJSON());
     },
   },
 
