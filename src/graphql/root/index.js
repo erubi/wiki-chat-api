@@ -79,7 +79,6 @@ const resolvers = {
       let res;
       if (user) {
         queryText = `SELECT n.*,
-        extract('epoch' from e.created_at) as unix_time,
         COALESCE(sum(v.vote), 0) as vote_sum,
         (SELECT vote as user_vote FROM entity_votes v WHERE v.entity_id = n.id AND v.user_id = $2)
         FROM news_items n
@@ -91,7 +90,6 @@ const resolvers = {
         res = await db.query(queryText, [id, user.id]);
       } else {
         queryText = `SELECT n.*,
-        extract('epoch' from e.created_at) as unix_time,
         COALESCE(sum(v.vote), 0) as vote_sum
         FROM news_items n
         JOIN entities e ON n.id = e.id

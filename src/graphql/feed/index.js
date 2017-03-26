@@ -23,13 +23,12 @@ const fetchEntities = async ({ type, decodedCursor, first, db }) => {
   switch (type) {
   case ('NEW'):
   default:
-    queryText = `SELECT n.id, n.title, n.url,
-      extract('epoch' from e.created_at) as unix_time,
+    queryText = `SELECT n.id, n.title, n.url, e.created_at,
       COALESCE(sum(v.vote), 0) as vote_sum
       FROM news_items n
       JOIN entities e ON n.id = e.id
       LEFT OUTER JOIN entity_votes v ON v.entity_id = e.id
-      WHERE e.created_at < to_timestamp($1)
+      WHERE e.created_at < $1
       GROUP BY n.id, e.created_at
       ORDER BY e.created_at DESC
       LIMIT $2`;
@@ -44,14 +43,13 @@ const fetchEntitiesForUser = async ({ type, decodedCursor, first, user, db }) =>
   switch (type) {
   case ('NEW'):
   default:
-    queryText = `SELECT n.id, n.title, n.url,
-      extract('epoch' from e.created_at) as unix_time,
+    queryText = `SELECT n.id, n.title, n.url, e.created_at,
       COALESCE(sum(v.vote), 0) as vote_sum,
       (SELECT vote as user_vote FROM entity_votes v WHERE v.entity_id = n.id AND v.user_id = $3)
       FROM news_items n
       JOIN entities e ON n.id = e.id
       LEFT OUTER JOIN entity_votes v ON v.entity_id = e.id
-      WHERE e.created_at < to_timestamp($1)
+      WHERE e.created_at < $1
       GROUP BY n.id, e.created_at
       ORDER BY e.created_at DESC
       LIMIT $2`;
@@ -66,7 +64,7 @@ const resolvers = {
     feed: async (root, { type = 'NEW', cursor, first = 10 }, { user, db }) => {
       let decodedCursor;
       if (cursor) decodedCursor = fromBase64(cursor);
-      else decodedCursor = (new Date()).valueOf();
+      else decodedCursor = (new Date().toJSON());
       let entitiesRes;
 
       if (user) entitiesRes = await fetchEntitiesForUser({ type, decodedCursor, first, user, db });
@@ -74,14 +72,14 @@ const resolvers = {
 
       if (!entitiesRes.rowCount) return { edges: [], endCursor: '', hasNextPage: false };
       const lastObj = _.last(entitiesRes.rows);
-      const lastItemQuery = `SELECT extract('epoch' from created_at) as unix_time
+      const lastItemQuery = `SELECT e.created_at
       FROM news_items n
       JOIN entities e ON n.id = e.id
       ORDER BY e.created_at
       LIMIT 1`;
       const lastItemRes = await db.query(lastItemQuery);
-      const hasNextPage = lastItemRes.rows[0].unix_time !== lastObj.unix_time;
-      const endCursor = toBase64(lastObj.unix_time.toString());
+      const hasNextPage = lastItemRes.rows[0].created_at.toJSON() !== lastObj.created_at.toJSON();
+      const endCursor = toBase64(lastObj.created_at.toJSON());
 
       return { edges: entitiesRes.rows, endCursor, hasNextPage };
     },
