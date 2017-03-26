@@ -10,7 +10,6 @@ const schema = [`
     user_id: Int!
     body: String!
     username: String!
-    parent_id: Int
     user_vote: Int
     vote_sum: Int
   }

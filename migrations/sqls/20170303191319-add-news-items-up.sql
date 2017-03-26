@@ -6,9 +6,9 @@ CREATE TABLE news_items (
   title varchar(250) NOT NULL,
   author varchar(100),
   publisher varchar(100),
-  published_at timestamp,
+  published_at timestamptz,
   archive_url varchar(250) UNIQUE,
-  archived_at timestamp,
+  archived_at timestamptz,
   CHECK (title != ''),
   CHECK (url != '')
 );
