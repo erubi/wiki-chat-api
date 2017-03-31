@@ -21,25 +21,42 @@ const schema = [`
   }
 `];
 
-const fetchEntities = async ({ type, decodedCursor, first, db }) => {
+const fetchEntities = async ({ type, decodedCursor, first, entityId, db }) => {
   let queryText;
   switch (type) {
   case ('NEW'):
   default:
-    queryText = `SELECT c.*, e.created_at,
-    'EntityComment' as "entityType",
-    COALESCE(sum(v.vote), 0) as vote_sum,
+    queryText = `WITH RECURSIVE comments AS (
+    SELECT c.*,
+    e.created_at,
     (SELECT username FROM users u WHERE u.id = c.user_id),
+    COALESCE(sum(v.vote), 0)::int as vote_sum
     FROM entity_comments c
     JOIN entities e ON c.id = e.id
     LEFT OUTER JOIN entity_votes v ON v.entity_id = e.id
-    WHERE c.entity_id = $4 AND e.created_at < $1
+    WHERE c.entity_id = $4 AND e.created_at > $1::timestamptz AND parent_id IS NULL
     GROUP BY c.id, e.created_at
-    ORDER BY e.created_at DESC
-    LIMIT $2`;
+    HAVING COALESCE(sum(v.vote), 0) <= $2
+    ORDER BY vote_sum DESC, e.created_at
+    LIMIT $3
+    ), cte AS (
+    SELECT c.*,
+        array[-c.vote_sum, c.id] AS path,
+        1 AS depth
+    FROM comments c
+    UNION ALL
+    SELECT c.*,
+        cte.path || -c.vote_sum || c.id,
+        cte.depth + 1 AS depth
+    FROM comments c
+    JOIN cte ON c.parent_id = cte.id
+    )
+    SELECT *, 'EntityComment' as "entityType"
+    FROM cte
+    ORDER BY path, created_at`;
   }
 
-  const res = await db.query(queryText, [decodedCursor, first || 10]);
+  const res = await db.query(queryText, [decodedCursor.created_at, decodedCursor.vote_sum, first || 10, entityId]);
   return res;
 };
 
@@ -48,22 +65,54 @@ const fetchEntitiesForUser = async ({ type, decodedCursor, first, user, entityId
   switch (type) {
   case ('NEW'):
   default:
-    queryText = `SELECT c.*, e.created_at,
-    'EntityComment' as "entityType",
-    COALESCE(sum(v.vote), 0) as vote_sum,
+    queryText = `WITH RECURSIVE comments AS (
+    SELECT c.*,
+    e.created_at,
     (SELECT username FROM users u WHERE u.id = c.user_id),
-    (SELECT vote as user_vote FROM entity_votes v WHERE v.entity_id = c.id AND v.user_id = $3)
+    (SELECT vote as user_vote FROM entity_votes v WHERE v.entity_id = c.id AND v.user_id = $4),
+    COALESCE(sum(v.vote), 0)::int as vote_sum
     FROM entity_comments c
     JOIN entities e ON c.id = e.id
     LEFT OUTER JOIN entity_votes v ON v.entity_id = e.id
-    WHERE c.entity_id = $4 AND e.created_at < $1
+    WHERE c.entity_id = $5 AND e.created_at > $1::timestamptz AND parent_id IS NULL
     GROUP BY c.id, e.created_at
-    ORDER BY e.created_at DESC
-    LIMIT $2`;
+    HAVING COALESCE(sum(v.vote), 0) <= $2
+    ORDER BY vote_sum DESC, e.created_at
+    LIMIT $3
+    ), cte AS (
+    SELECT c.*,
+        array[-c.vote_sum, c.id] AS path,
+        1 AS depth
+    FROM comments c
+    UNION ALL
+    SELECT c.*,
+        cte.path || -c.vote_sum || c.id,
+        cte.depth + 1 AS depth
+    FROM comments c
+    JOIN cte ON c.parent_id = cte.id
+    )
+    SELECT *, 'EntityComment' as "entityType"
+    FROM cte
+    ORDER BY path, created_at`;
   }
 
-  const res = await db.query(queryText, [decodedCursor, first || 10, user.id, entityId]);
+  const res = await db.query(queryText, [decodedCursor.created_at, decodedCursor.vote_sum, first || 10, user.id, entityId]);
   return res;
+};
+
+const fetchLastItem = async ({ db, entityId }) => {
+  // TODO: this has to be consistent with sorting of entity query but can still use created_at cursor
+  const lastItemQuery = `SELECT e.created_at,
+      COALESCE(sum(v.vote), 0)::int as vote_sum
+      FROM entity_comments c
+      JOIN entities e ON c.id = e.id
+      LEFT OUTER JOIN entity_votes v ON v.entity_id = e.id
+      WHERE c.entity_id = $1 AND c.parent_id IS NULL
+      GROUP BY e.created_at
+      ORDER BY vote_sum ASC, e.created_at DESC
+      LIMIT 1`;
+
+  return db.query(lastItemQuery, [entityId]);
 };
 
 const resolvers = {
@@ -71,23 +120,21 @@ const resolvers = {
     comments: async (root, { type = 'NEW', cursor, first = 10, entityId }, { user, db }) => {
       let decodedCursor;
       if (cursor) decodedCursor = utils.fromBase64(cursor);
-      else decodedCursor = (new Date().toJSON());
+      else decodedCursor = { created_at: '-infinity', vote_sum: 100000000 };
       let entitiesRes;
 
       if (user) entitiesRes = await fetchEntitiesForUser({ type, decodedCursor, first, user, db, entityId });
       else entitiesRes = await fetchEntities({ type, decodedCursor, first, db, entityId });
 
       if (!entitiesRes.rowCount) return { edges: [], endCursor: '', hasNextPage: false };
-      const lastObj = _.last(entitiesRes.rows);
-      const lastItemQuery = `SELECT e.created_at
-      FROM entity_comments c
-      JOIN entities e ON c.id = e.id
-      WHERE c.entity_id = $1
-      ORDER BY e.created_at
-      LIMIT 1`;
-      const lastItemRes = await db.query(lastItemQuery, [entityId]);
-      const hasNextPage = lastItemRes.rows[0].created_at.toJSON() !== lastObj.created_at.toJSON();
-      const endCursor = utils.toBase64(lastObj.created_at.toJSON());
+      const lastObj = _.last(entitiesRes.rows.filter(r => !r.parent_id));
+      const lastItemRes = await fetchLastItem({ db, entityId });
+      const hasNextPage = lastItemRes.rows[0].created_at !== lastObj.created_at
+        || lastItemRes.rows[0].vote_sum !== lastObj.vote_sum;
+      const endCursor = utils.toBase64({
+        created_at: lastObj.created_at,
+        vote_sum: lastObj.vote_sum,
+      });
 
       return { edges: entitiesRes.rows, endCursor, hasNextPage };
     },
@@ -127,3 +174,4 @@ const resolvers = {
 };
 
 module.exports = { resolvers, schema };
+
