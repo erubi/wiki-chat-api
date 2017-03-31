@@ -123,8 +123,8 @@ const resolvers = {
     },
 
     cursor: async (obj) => {
-      if (!obj) return '';
-      return utils.toBase64(obj.created_at.toJSON());
+      if (!obj || !obj.created_at) return '';
+      return utils.toBase64(obj.created_at);
     },
   },
 

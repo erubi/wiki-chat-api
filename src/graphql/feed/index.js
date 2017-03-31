@@ -62,7 +62,7 @@ const resolvers = {
     feed: async (root, { type = 'NEW', cursor, first = 10 }, { user, db }) => {
       let decodedCursor;
       if (cursor) decodedCursor = utils.fromBase64(cursor);
-      else decodedCursor = (new Date().toJSON());
+      else decodedCursor = 'infinity';
       let entitiesRes;
 
       if (user) entitiesRes = await fetchEntitiesForUser({ type, decodedCursor, first, user, db });
@@ -76,8 +76,8 @@ const resolvers = {
       ORDER BY e.created_at
       LIMIT 1`;
       const lastItemRes = await db.query(lastItemQuery);
-      const hasNextPage = lastItemRes.rows[0].created_at.toJSON() !== lastObj.created_at.toJSON();
-      const endCursor = utils.toBase64(lastObj.created_at.toJSON());
+      const hasNextPage = lastItemRes.rows[0].created_at !== lastObj.created_at;
+      const endCursor = utils.toBase64(lastObj.created_at);
 
       return { edges: entitiesRes.rows, endCursor, hasNextPage };
     },
