@@ -1,4 +1,14 @@
 const pg = require('pg');
+const types = require('pg').types;
+// const moment = require('moment');
+const TIMESTAMPTZ_OID = 1184;
+const parseFn = (val) => {
+  // return val === null ? null : moment(val)
+  // console.log('timstamptz db parsfn val: ', val);
+  return val === null ? null : val;
+};
+types.setTypeParser(TIMESTAMPTZ_OID, parseFn);
+
 
 const config = {
   user: process.env.PG_USER, // env var: PGUSER
